@@ -1,0 +1,14 @@
+Package: rcmodel
+Type: Package
+Title: Calibrate and Validate Rating Curves for Hydrologic Parameter Estimation
+Version: 0.1
+Date: 2015-03-28
+Author: Mark Hagemann
+Maintainer: Mark Hagemann <mark.hagemann@gmail.com>
+Description: Contains functions for the log-concentration (or load) vs log-flow
+  family of regression models commonly referred to as "rating curves" in hydrology.
+  Traditional linear regression models as well as more flexible general additive
+  models a la Wang et al., 2011 are implemented. Automatic model selection similar
+  to the LOADEST USGS FORTRAN program is also implemented.
+License: What license is it under?
+LazyData: TRUE

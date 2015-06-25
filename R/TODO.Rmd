@@ -1,0 +1,5 @@
+
+Two main functions, rclm and rcgam, will act basically the same way but with their main obvious difference that one is an lm and one is a gam. 
+
+Do I really want to automatically remove outliers?
+ - probably not. 
