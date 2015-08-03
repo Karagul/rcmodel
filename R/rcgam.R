@@ -1,4 +1,4 @@
-#' GAM rating-curve model
+#' Rating-curve generalized additive model
 #'
 #' Fits generalized additive models to log-log relationships using `mgcv::gam`,
 #' but incorporates aspects
@@ -11,66 +11,44 @@
 #' Arguments ending in "var" are names of objects that will be assigned in the function.
 #' logflowvar and logcvar will be shifted to have mean zero. POSSIBLY CHANGE THIS?
 #'
-#'
+#' @param formula a GAM formula. See `help("gam", package = "mgcv")` for details.
+#' @param data an object of class rcData, generated using `makeModelData`
+#' @param ... further arguments passed to `mgcv::gam`
 #' @export
 
 
-rcgam <- function(formula, data, ...,
-                  remove.outliers = TRUE,
-                  flowcol = "flow",
-                  lqbar = attr(data, "lqbar"),
-                  lqsd = attr(data, "lqsd"),
-                  ccol = "concentration",
-                  datecol = "Date",
-                  logflowvar = "logQ",
-                  logcvar = "logC",
-                  doyvar = "doy",
-                  numtimevar = "numTime") {
-
+rcgam <- function(formula, data, ...) {
+  cl <- match.call()
+  if(!is(data, "rcData")) stop("'data' must be an object of class 'rcData'. Use 'makeModelData()` to generate.")
   formula = as.formula(formula)
 
-  lq = log(data[[flowcol]])
-  lc = log(data[[ccol]])
-  stopifnot(!any(is.na(lq)) && !any(is.na(lc))) # check for missing data
-  if(is.null(lqbar)) lqbar = mean(lq, na.rm = TRUE)
-  if(is.null(lqsd)) lqsd = sd(lq, na.rm = TRUE)
-  lcbar = mean(lc)
-
-  dates = data[[datecol]]
+  dates = data[["Date"]]
   datebar = mean(dates)
 
-  data[[logflowvar]] = lq - lqbar
-  data[[logcvar]] = lc - lcbar
-  data[[numtimevar]] = as.numeric(dates) - as.numeric(datebar)
-  data[[doyvar]] = as.numeric(format(dates, "%j"))
+  data[["time"]] = as.numeric(dates) - as.numeric(datebar)
+  data[["doy"]] = as.numeric(format(dates, "%j"))
   #   browser()
   out = gam(formula = formula, data = data, ...)
-  if(remove.outliers){
-    outliers = abs(residuals(out) / sd(residuals(out))) > 3
-    if(sum(outliers) > 0) {
-      message(paste0("removing ", sum(outliers), " outliers"))
-      data = data[!outliers,]
-      out = gam(formula = formula, data = data, ...)
-    }
-  }
-
-  scoef = mean(data[[ccol]]) / mean(exp(out$fitted.values))
+  out$call = cl
+  al = attributes(data)
+  conc = al$transform$cinvert(data$c)
+  conc.pred = al$transform$cinvert(out$fitted.values)
+  scoef = mean(conc) / mean(conc.pred)
   if(scoef > 1.5) message(paste0("smearing coefficient is high: ", scoef))
 
-  fitted.retrans = exp(out[["fitted.values"]]) * scoef
+  fitted.retrans = conc.pred * scoef
 
-  resid.retrans = data[[ccol]] - fitted.retrans
-  NSE = 1 - sum(resid.retrans ^ 2) / sum((data[[ccol]] - mean(data[[ccol]]))^2)
+  resid.retrans = conc - fitted.retrans
+  NSE = 1 - sum(resid.retrans ^ 2) / sum((conc - mean(conc))^2)
 
-  newbits = list(lqbar = lqbar, lqsd = lqsd, lcbar = lcbar, datebar = datebar,
-                 smearCoef = scoef, fitted.retrans, resid.retrans = resid.retrans,
-                 NSE = NSE)
+  newbits = list(stats = c(al$stats, datebar = datebar),
+                 smearCoef = scoef,
+                 transform = al$transform,
+                 units = al$units,
+                 fitted.retrans, resid.retrans = resid.retrans, NSE = NSE)
 
   out = c(out, newbits)
-  structure(out, class = c("rcgam", "gam", "glm", "lm"),
-            flowcol = flowcol, ccol = ccol, datecol = datecol,
-            logflowvar = logflowvar, logcvar = logcvar, doyvar = doyvar,
-            numtimevar = numtimevar)
+  structure(out, class = c("rcgam", "gam", "glm", "lm"))
 }
 
 
@@ -85,43 +63,45 @@ rcgam <- function(formula, data, ...,
 #'
 
 
-predict.rcgam <- function(object, newdata, ..., smear = TRUE,
-                          flowcol = attr(object, "flowcol"),
-                          ccol = attr(object, "ccol"),
-                          datecol = attr(object, "datecol"),
-                          logflowvar = attr(object, "logflowvar"),
-                          logcvar = attr(object, "logcvar"),
-                          doyvar = attr(object, "doyvar"),
-                          numtimevar = attr(object, "numtimevar")) {
+predict.rcgam <- function(object, newdata, flowcol = "flow",
+                          flow.units = "CFS", ..., smear = TRUE, quantile = NULL) {
 
-  stopifnot(is(newdata[[datecol]], "Date") && is(object[["datebar"]], "Date"))
-
-  # Make prediction columns
-  newdata[[logflowvar]] = log(newdata[[flowcol]]) - object[["lqbar"]]
-  newdata[[logcvar]] = log(newdata[[ccol]]) - object[["lcbar"]]
-  newdata[[numtimevar]] = as.numeric(newdata[[datecol]]) - as.numeric(object[["datebar"]])
-  newdata[[doyvar]] = as.numeric(format(newdata[[datecol]], "%j"))
-
-  # make necessary columns
-  for(term in attr(object$terms, "term.labels")) {
-    newdata[[term]] = with(newdata, eval(parse(text = term)))
-  }
+  newdata <- newdata %>%
+    mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
+            time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
+            doy = ~ as.numeric(format(Date, "%j")))
 
   preds = as.data.frame(predict.gam(object = object, newdata = newdata, ...))
   names(preds)[1] = "fit"
+  if(!is.null(quantile))
+    preds$fit = condlSample(object = object, newdata = newdata, quantile = quantile)
+  }
 
   # unbias the retransformed estimates
   if(smear) {
-    preds$fit = exp(preds$fit) * object$smearCoef
+    preds$fit = object$transform$cinvert(preds$fit) * object$smearCoef
   }
 
-  preds$residual = newdata[[ccol]] - preds[["fit"]]
-  denom = exp(sd(residuals(object, type = "response"))) # Is this proper scaling?
-  print(paste("denom:", denom))
-  preds$scaled_resid = preds$residual / denom
-  #   browser()
-  preds$aR2 = summary(object)[["r.sq"]]
-
-  #   newdata$qdist = newdata$stLogFlow
-  out = data.frame(newdata, setNames(Reduce(data.frame, preds), names(preds)))
+  out = cbind(newdata, preds)
 }
+
+# testing
+
+load("data/sampleData.rda")
+foo = makeModelData(sampleData)
+mod1 = rcgam(c ~ s(q), foo)
+summary(mod1)
+plot(mod1, all.terms = TRUE, residuals = TRUE)
+termplot(mod1)
+
+plot(b, all.terms = TRUE)
+
+bar = predict(mod1, newdata = sampleData)
+
+mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), foo)
+summary(mod2)
+plot(mod2, pages = 1)
+
+pred2 = predict(mod2, sampleData, se.fit = TRUE)
+plot(fit ~ conc, pred2)
+mod2$NSE

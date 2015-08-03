@@ -3,3 +3,65 @@ Two main functions, rclm and rcgam, will act basically the same way but with the
 
 Do I really want to automatically remove outliers?
  - probably not. 
+ 
+require data structure?
+
+
+Talking through the ideas behind current rcgam function:
+
+- initial data should be generic flow and concentration (plus other desired variables)
+- formula should refer to the ultimate data frame after flow and conc have been transformed and centered
+- ultimate object returned should remember how to get back to original data and how to get new data to behave meaningfully as predictors. I.e. save tranformation, mean, sd for concentration and flow
+  - IDEA: make utility functions for transitioning back and forth between "raw" and model data
+
+- Looks like I expect wqdata object for data. Can I think of a reason to retain this expectation?
+  - IDEA: make a separate function that takes a wqData objec and a qdata object (or whatever these classes are called) and returns a nice data frame that rcgam can use. This places less expectation on the user to have wqdata etc. objects. 
+- NEED TO DECIDE WHAT BASE LOG TO USE!
+  - The only reason to use log10 is human-intuition of transformed data, but these will be shifted anyway, so no reason. 
+  - DECIDED. Use log() (base e)
+  
+
+7/6/15
+
+- make function for transitioning back and forth between "raw" and model data DONE.
+- read data disasters paper
+- make a testing "raw" dataset DONE.
+- put lookup table for units in the R/sysdate.rda
+
+
+7/7/15
+
+- Check for missing values, issue warning before removing in makeModelData
+- ~~add datebar to rcData object~~
+  - Or does this only matter for the model? Yes. Implement in rcgam, etc.
+- make untransform function? Or does makeRawData take care of this?
+  - DONE. 
+  - Change rcData to include transform objects as attrs. 
+    - ~~Maybe should use S4?~~
+      - Spend 15 minutes reviewing S4 system. Check back at 1:38. Not worth it for now.
+  - ~~Use pryr::partial?~~
+  - NO! use stats::make.link() DONE.
+  
+TOMORROW: fix predict.rcgam function. Should work something like: predict(object, newdata, flowcol = "flow")
+
+
+7/8/15
+
+- Why do I have predict.rcgam involving residuals? 
+
+**Realizing it may be better to use gam's built-in link function...**
+
+- Need to understand what objective function is being optimized (least-squares of original uints?)
+- Would obviate cumbersome transformation in makeModelData
+  - not necessarily (for flow). 
+  
+7/19/15
+
+- Lognormal distribution not supported! Back to the way I was doing things. 
+
+
+7/23/15
+
+- Make predict.rcgam(se.fit = TRUE) give meaningful error bounds.
+
+
