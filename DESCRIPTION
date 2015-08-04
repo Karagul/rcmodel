@@ -16,3 +16,4 @@ Imports: assertthat,
     dplyr,
     mgcv,
     conditionalSample
+Suggests: testthat
