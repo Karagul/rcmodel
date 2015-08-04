@@ -94,11 +94,11 @@ makeRawData <- function(data) UseMethod("makeRawData")
 makeRawData.rcData <- function(data) {
   ds <- attr(data, "stats"); du <- attr(data, "units")
   ql <- attr(data, "qtrans"); cl <- attr(data, "ctrans")
-
+  tfm <- attr(data, "transform")
   rawData <- data %>%
-    mutate_(flow = ~ attr(data, "qinvert")(q),
+    mutate_(flow = ~ tfm$qinvert(q),
             flow.units = ~ du["qunits"],
-            conc = ~ attr(data, "cinvert")(c),
+            conc = ~ tfm$cinvert(c),
             conc.units = ~ du["cunits"], is.bdl = ~ is.bdl) %>%
     select_("-c", "-q")
   rawData
@@ -117,14 +117,4 @@ transform <- function(linkObj, center, scale) {
   invert <- function(x) linkObj$linkinv((x * scale) + center)
   list(trans = trans, invert = invert)
 }
-#
-# # Testing
-#
-# load("data/sampleData.rda")
-# foo = makeModelData(sampleData)
-# attributes(foo)
-# bar = makeRawData(foo)
-# bar = makeModelData(makeRawData(foo))
-# attributes(foo) = NULL
-# attributes(bar) = NULL
-# identical(bar, foo) # should be TRUE
+
