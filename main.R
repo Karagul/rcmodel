@@ -21,6 +21,7 @@ use_package("dplyr")
 use_package("mgcv")
 use_package("conditionalSample")
 use_package("nlme")
+use_package("markstats", type = "Depends")
 use_testthat()
 
 # document
@@ -33,7 +34,7 @@ devtools::test()
 
 # set up to use data
 # dir.create("data")
-use_data(sampleData, overwrite = TRUE)
+use_data(Phosphorus, overwrite = TRUE)
 
 # load and install package
 

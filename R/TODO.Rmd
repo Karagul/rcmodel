@@ -63,5 +63,20 @@ TOMORROW: fix predict.rcgam function. Should work something like: predict(object
 7/23/15
 
 - Make predict.rcgam(se.fit = TRUE) give meaningful error bounds.
+  - Scratched. Use condlSample.rcgam instead
 
 
+8/4/15
+
+- Make model data for all CE-QUAL tributaries, calibrate models to these
+- Make crossvalidation function for rcgam
+
+8/5/15
+
+- rename sampleData, replace this in test
+  - Where did this dataset come from?
+
+8/6/15
+
+- Put data manipulation from rcgam function into makeModelData function.
+  - get these from rcData, store in rcgam. 

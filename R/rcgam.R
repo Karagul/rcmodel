@@ -12,24 +12,22 @@
 #' logflowvar and logcvar will be shifted to have mean zero. POSSIBLY CHANGE THIS?
 #'
 #' @param formula a GAM formula. See `help("gam", package = "mgcv")` for details.
-#' @param data an object of class rcData, generated using `makeModelData`
+#' @param data an object of class rcData, generated using `makeModelData`, or a data frame that makeModelData can use.
 #' @param ... further arguments passed to `mgcv::gam`
 #' @export
 
 
 rcgam <- function(formula, data, ...) {
   cl <- match.call()
-  if (!is(data, "rcData")) stop("'data' must be an object of class 'rcData'. Use 'makeModelData()` to generate.")
+  if (!is(data, "rcData"))
+    data = makeModelData(data)
   formula = as.formula(formula)
 
-  dates = data[["Date"]]
-  datebar = mean(dates)
-
-  data[["time"]] = as.numeric(dates) - as.numeric(datebar)
-  data[["doy"]] = as.numeric(format(dates, "%j"))
   #   browser()
   out = gam(formula = formula, data = data, ...)
   out$call = cl
+
+
   al = attributes(data)
   conc = al$transform$cinvert(data$c)
   conc.pred = al$transform$cinvert(out$fitted.values)
@@ -41,7 +39,9 @@ rcgam <- function(formula, data, ...) {
   resid.retrans = conc - fitted.retrans
   NSE = 1 - sum(resid.retrans ^ 2) / sum((conc - mean(conc))^2)
 
-  newbits = list(stats = c(al$stats, datebar = datebar),
+  newbits = list(data = data,
+                 stats = c(al$stats),
+                 yname = "conc",
                  smearCoef = scoef,
                  transform = al$transform,
                  units = al$units,
@@ -66,10 +66,11 @@ rcgam <- function(formula, data, ...) {
 predict.rcgam <- function(object, newdata, flowcol = "flow",
                           flow.units = "CFS", ..., smear = TRUE) {
 
+  tfm <- object$transform
   if (!missing(newdata)) {
     newdata <- newdata %>%
-      mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
-              time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
+      mutate_(q = ~ tfm$qtrans(newdata[[flowcol]]),
+              time = ~ tfm$ttrans(as.numeric(Date)),
               doy = ~ as.numeric(format(Date, "%j")))
   }
 
@@ -99,32 +100,3 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
   preds
 }
 
-
-# # testing
-#
-# load("data/sampleData.rda")
-# foo = makeModelData(sampleData)
-# mod1 = rcgam(c ~ s(q), foo)
-# summary(mod1)
-# plot(mod1, all.terms = TRUE, residuals = TRUE)
-# termplot(mod1)
-#
-# mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), foo)
-# summary(mod2)
-# plot(mod2, pages = 1, residuals = TRUE, pch = 1)
-#
-# bar = predict(mod2, newdata = sampleData)
-# bar2 = predict(mod2)
-#
-# qmod = pryr::partial(condlSample, object = mod2, newdata = sampleData)
-# qmod(quantile = 0.99)
-#
-# ggplot(sampleData) + geom_point(aes(x = flow, y = conc)) +
-#   geom_line(aes(x = flow, y = qmod(quantile = 0.001))) +
-#   geom_line(aes(x = flow, y = qmod(quantile = 0.999))) +
-#   geom_line(aes(x = flow, y = qmod(quantile = 0.5)), colour = "red")
-#
-#
-# pred2 = predict(mod2, sampleData, se.fit = TRUE)
-# plot(fit ~ conc, pred2)
-# mod2$NSE
