@@ -17,7 +17,8 @@ makeModelData.data.frame <- function(rawData, model = NULL,
 
   neededCols <- c("Date", "flow", "flow.units", "conc", "conc.units", "is.bdl")
   diffs = setdiff(neededCols, names(rawData))
-  if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):", diffs))
+  if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
+                                   paste(diffs, collapse = ", "))
 
   qunits = unique(rawData[["flow.units"]])
   cunits = unique(rawData[["conc.units"]])
