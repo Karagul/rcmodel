@@ -20,8 +20,8 @@ makeModelData.data.frame <- function(rawData, model = NULL,
   if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
                                    paste(diffs, collapse = ", ")))
 
-  qunits = unique(rawData[["flow.units"]])
-  cunits = unique(rawData[["conc.units"]])
+  qunits = as.character(unique(rawData[["flow.units"]]))
+  cunits = as.character(unique(rawData[["conc.units"]]))
   if(length(qunits) != 1) stop(paste("Data must all have the same flow units:", qunits))
   if(length(cunits) != 1) stop(paste("Data must all have the same conc units:", cunits))
 
