@@ -89,10 +89,11 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
                               flow.units = "CFS", quantile) {
 
   if (!missing(newdata)) {
+
     assertthat::assert_that(is.Date(newdata$Date))
     assertthat::assert_that(flowcol %in% names(newdata))
     assertthat::assert_that("flow.units" %in% names(newdata))
-    assertthat::assert_that(newdata$flow.units == object$units$qunits)
+    assertthat::assert_that(all(as.character(newdata$flow.units) == object$units["qunits"]))
 
     newdata <- newdata %>%
       mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
