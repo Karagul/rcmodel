@@ -89,13 +89,18 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
                               flow.units = "CFS", quantile) {
 
   if (!missing(newdata)) {
+    assertthat::assert_that(is.Date(newdata$Date))
+    assertthat::assert_that(flowcol %in% names(newdata))
+    assertthat::assert_that("flow.units" %in% names(newdata))
+    assertthat::assert_that(newdata$flow.units == object$units$qunits)
+
     newdata <- newdata %>%
       mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
               time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
               doy = ~ as.numeric(format(Date, "%j")))
   }
 
-  preds = conditionalSample:::condlSample.lm(object = object, newdata = newdata, quantile = quantile)
+  preds = markstats::condlSample.lm(object = object, newdata = newdata, quantile = quantile)
   preds = object$transform$cinvert(preds)
   preds
 }
