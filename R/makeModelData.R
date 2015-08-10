@@ -18,7 +18,7 @@ makeModelData.data.frame <- function(rawData, model = NULL,
   neededCols <- c("Date", "flow", "flow.units", "conc", "conc.units", "is.bdl")
   diffs = setdiff(neededCols, names(rawData))
   if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
-                                   paste(diffs, collapse = ", "))
+                                   paste(diffs, collapse = ", ")))
 
   qunits = unique(rawData[["flow.units"]])
   cunits = unique(rawData[["conc.units"]])
@@ -27,13 +27,13 @@ makeModelData.data.frame <- function(rawData, model = NULL,
 
   rawData[["Date"]] = as.Date(rawData[["Date"]])
 
-  with(rawData, assert_that(is(flow, "numeric"),
+  with(rawData, assertthat::assert_that(is(flow, "numeric"),
                             is(conc, "numeric"),
                             is(is.bdl, "logical")))
 
   if(!is.null(model)) {
     stopifnot(is(model, "rcgam"))
-    assert_that(all(model$units$qunits == rawData$flow.units),
+    assertthat::assert_that(all(model$units$qunits == rawData$flow.units),
                 all(model$units$cunits == rawData$conc.units))
     tf = model$transform
     modelData <- rawData %>%
