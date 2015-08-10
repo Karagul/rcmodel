@@ -6,7 +6,7 @@
 #' flow and concentration, adjusts for transformation bias, and calculates relevant
 #' fit statistics such as Nash-Sutcliffe efficiency (NSE)
 #'
-#' Dots get passed to gam() call.
+#' Dots get passed to mgcv::gam() call.
 #' All logarithms are base e (natural log)
 #' Arguments ending in "var" are names of objects that will be assigned in the function.
 #' logflowvar and logcvar will be shifted to have mean zero. POSSIBLY CHANGE THIS?
@@ -24,7 +24,7 @@ rcgam <- function(formula, data, ...) {
   formula = as.formula(formula)
 
   #   browser()
-  out = gam(formula = formula, data = data, ...)
+  out = mgcv::gam(formula = formula, data = data, ...)
   out$call = cl
 
 
@@ -74,7 +74,7 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
               doy = ~ as.numeric(format(Date, "%j")))
   }
 
-  preds = predict.gam(object = object, newdata = newdata, ...)
+  preds = mgcv::predict.gam(object = object, newdata = newdata, ...)
   if (smear) {
     if (is.list(preds))
       preds$fit = object$transform$cinvert(preds$fit) * object$smearCoef
