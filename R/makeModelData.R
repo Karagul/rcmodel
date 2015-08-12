@@ -189,7 +189,7 @@ getData.rcgam <- function(object, type = c("raw", "rcData")) {
   out
 }
 
-
+#' @export
 `[.rcData` <- function(x, i, ...) {
   r <- NextMethod("[")
   ats <- attributes(x)
@@ -198,3 +198,24 @@ getData.rcgam <- function(object, type = c("raw", "rcData")) {
   mostattributes(r) <- ats
   r
 }
+
+#' Calculate loads from concentration and flow
+#'
+#' Performs appropriate unit conversion to go from flow and concentration to load
+#'
+#' @export
+
+calcLoad <- function(flow, conc, flow.units = "CFS", conc.units = "mg/l", load.units = "kg/day") {
+  if(flow.units != "CFS" || conc.units != "mg/l" || load.units != "kg/day")
+    stop("units other than CFS, mg/l, kg/day not currently supported. Must use defaults for now.")
+
+  siflowconst <- c("CFS" = 28.3168466)
+  siconcconst <- c("mg/l" = 1 / 1000000)
+  siloadconst <- c("kg/day" = 1 / (24 * 3600))
+
+  out = flow * siflowconst[flow.units] * conc * siconcconst[conc.units] / siloadconst[load.units]
+  unname(out)
+}
+
+
+

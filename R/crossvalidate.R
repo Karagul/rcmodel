@@ -5,9 +5,14 @@ crossvalidate <- function(object, ...) {
 }
 
 
+#' Crossvalidation for rcgam models
+#'
+#' @param ... Passed to predict.rcgam
+#'
 #' @export
 crossvalidate.rcgam  <- function(object, kfolds = 0,
-                                 statistic = c("R2", "mse", "mae", "rmse")) {
+                                 statistic = c("R2", "mse", "mae", "rmse"),
+                                 ...) {
 
   data <- getData(object)
   fmla <- object$formula
@@ -33,7 +38,7 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
     test <- data[case.folds == fold, ]
     curobj <- do.call("rcgam", list(formula = fmla, data = train))
 
-    ypred <- as.numeric(predict(curobj, newdata = test))
+    ypred <- as.numeric(predict(curobj, newdata = test, ...))
     ymeas <- test[[yname]]
 
     # fold.ss[fold] <- sum((ymeas - ypred)^2)

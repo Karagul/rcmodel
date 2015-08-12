@@ -64,7 +64,16 @@ rcgam <- function(formula, data, ...) {
 
 
 predict.rcgam <- function(object, newdata, flowcol = "flow",
-                          flow.units = "CFS", ..., smear = TRUE) {
+                          smear = TRUE,
+                          what = c("conc_mg.l", "load_kg.d"), ...) {
+
+  if(!all(newdata$flow.units == "CFS"))
+    stop("units other than CFS not currently supported")
+  if(!all(newdata$conc.units %in% c("mg/L", "mg/l")))
+    stop("units other than mg/L not currently supported")
+
+
+  what = match.arg(what)
 
   tfm <- object$transform
   if (!missing(newdata)) {
@@ -79,8 +88,13 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
     if (is.list(preds))
       preds$fit = object$transform$cinvert(preds$fit) * object$smearCoef
     else preds = object$transform$cinvert(preds) * object$smearCoef
+  } else {
+    if (is.list(preds))
+      preds$fit = object$transform$cinvert(preds$fit)
+    else preds = object$transform$cinvert(preds)
   }
-
+  if(what == "load_kg.d")
+    preds = calcLoad(flow = newdata[[flowcol]], conc = preds)
   preds
 }
 

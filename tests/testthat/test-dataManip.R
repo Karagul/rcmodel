@@ -66,3 +66,9 @@ test_that("subsetting preserves attributes in rcData objects", {
 
   expect_identical(attributes(pdat[1:10,])[atnames], attributes(pdat)[atnames])
 })
+
+
+test_that("load unit conversion works", {
+  expect_less_than(abs(calcLoad(flow = 1, conc = 1) - 3600 * 24 * 28.3168 / 1000000),
+                   0.0001)
+})
