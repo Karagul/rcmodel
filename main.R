@@ -39,5 +39,7 @@ use_data(Phosphorus, overwrite = TRUE)
 # load and install package
 
 
-
+devtools::install_github("markwh/markstats")
 devtools::install()
+
+
