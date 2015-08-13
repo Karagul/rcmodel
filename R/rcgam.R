@@ -24,7 +24,8 @@ rcgam <- function(formula, data, ...) {
   formula = as.formula(formula)
 
   #   browser()
-  out = mgcv::gam(formula = formula, data = data, ...)
+  out = R.utils::withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = 1,
+                             onTimeout = "error")
   out$call = cl
 
 
@@ -67,23 +68,24 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
                           smear = TRUE,
                           what = c("conc_mg.l", "load_kg.d"), ...) {
 
-  if(!all(newdata$flow.units == "CFS"))
-    stop("units other than CFS not currently supported")
-  if(!all(newdata$conc.units %in% c("mg/L", "mg/l")))
-    stop("units other than mg/L not currently supported")
-
 
   what = match.arg(what)
 
   tfm <- object$transform
-  if (!missing(newdata)) {
+  if (missing(newdata))
+    newdata = getData(object, type = "raw")
+    if(!all(newdata$flow.units == "CFS"))
+      stop("units other than CFS not currently supported")
+    if(!all(newdata$conc.units %in% c("mg/L", "mg/l")))
+      stop("units other than mg/L not currently supported")
     newdata <- newdata %>%
       mutate_(q = ~ tfm$qtrans(newdata[[flowcol]]),
               time = ~ tfm$ttrans(as.numeric(Date)),
               doy = ~ as.numeric(format(Date, "%j")))
-  }
+  # }
 
   preds = mgcv::predict.gam(object = object, newdata = newdata, ...)
+
   if (smear) {
     if (is.list(preds))
       preds$fit = object$transform$cinvert(preds$fit) * object$smearCoef
@@ -98,22 +100,23 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
   preds
 }
 
+
 #' @export
 condlSample.rcgam <- function(object, newdata, flowcol = "flow",
                               flow.units = "CFS", quantile) {
 
-  if (!missing(newdata)) {
+  if (missing(newdata))
+    newdata = getData(object)
 
-    assertthat::assert_that(is.Date(newdata$Date))
-    assertthat::assert_that(flowcol %in% names(newdata))
-    assertthat::assert_that("flow.units" %in% names(newdata))
-    assertthat::assert_that(all(as.character(newdata$flow.units) == object$units["qunits"]))
+  assertthat::assert_that(is.Date(newdata$Date))
+  assertthat::assert_that(flowcol %in% names(newdata))
+  assertthat::assert_that("flow.units" %in% names(newdata))
+  assertthat::assert_that(all(as.character(newdata$flow.units) == object$units["qunits"]))
 
-    newdata <- newdata %>%
-      mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
-              time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
-              doy = ~ as.numeric(format(Date, "%j")))
-  }
+  newdata <- newdata %>%
+    mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
+            time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
+            doy = ~ as.numeric(format(Date, "%j")))
 
   preds = markstats::condlSample.lm(object = object, newdata = newdata, quantile = quantile)
   preds = object$transform$cinvert(preds)

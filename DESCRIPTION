@@ -16,6 +16,8 @@ Imports: assertthat,
     dplyr,
     mgcv,
     conditionalSample,
-    markstats
+    markstats,
+    R.utils
 Suggests: testthat
-Depends: markstats
+Depends: markstats,
+    dplyr
