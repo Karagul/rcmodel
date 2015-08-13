@@ -4,11 +4,18 @@ context("data manipulation")
 
 test_that("makeModelData and makeRawData are inversions of each other", {
   data(Phosphorus)
-  moddat = makeModelData(Phosphorus)
-  rawdat = makeModelData(makeRawData(moddat))[names(moddat)]
-  attributes(rawdat) = NULL
-  attributes(moddat) = NULL
-  expect_identical(moddat, rawdat)
+  moddat1 = makeModelData(Phosphorus)
+  rawdat1 = makeModelData(makeRawData(moddat1))[names(moddat1)]
+  attributes(rawdat1) = NULL
+  attributes(moddat1) = NULL
+  expect_equal(moddat1, rawdat1)
+
+  data(rc_synth)
+  moddat2 = makeModelData(rc_synth)
+  rawdat2 = makeModelData(makeRawData(moddat2))[names(moddat2)]
+  attributes(rawdat2) = NULL
+  attributes(moddat2) = NULL
+  expect_equal(moddat2, rawdat2)
 })
 
 test_that("getData works for rcgams", {

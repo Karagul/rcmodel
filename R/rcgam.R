@@ -124,6 +124,7 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
 
   preds = condlSample.lm(object = object, newdata = newdata,
                          quantile = quantile, smear = FALSE, retransform = FALSE)
+  preds = object$transform$cinvert(preds)
   preds
 }
 
