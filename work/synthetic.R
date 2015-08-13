@@ -72,18 +72,26 @@ mod1 = rcgam(c ~ s(q, k = 5) + s(time) + s(doy, k = 4, bs = "cc"), d2)
 
 summary(mod1)
 plot(mod1, residuals = F, pages = 1)
-crossvalidate(mod1, k = 30)
-crossvalidate(mod1, k = 30, smear = FALSE)
+crossvalidate(mod1, k = 30, what = "conc")
+crossvalidate(mod1, k = 30, smear = FALSE, what = "conc")
+crossvalidate(mod1, k = 30, what = "load")
+crossvalidate(mod1, k = 30, smear = FALSE, what = "load")
+
 plot(predict(mod1), rc_synth$conc)
+plot(predict(mod1, what = "load"), calcLoad(rc_synth$flow, rc_synth$conc))
+plot(predict(mod1, what = "load"), calcLoad(rc_synth$flow, rc_synth$conc), log = "xy")
 plot(predict(mod1, smear = FALSE), rc_synth$conc)
+plot(predict(mod1, smear = TRUE), rc_synth$conc, log = "xy")
 abline(0, 1)
 
-# Check out 2 high outliers
-foo = rc_synth[rc_synth$conc > 1500, ]
+
+# check quantiles
+foo = condlSample.rcgam(object = mod1, quantile = 0.01)
+plot(rc_synth$conc, predict(mod1))
+points(rc_synth$conc, foo, col = "red", pch = "-")
 
 
-
-pairs(rc_synth[c("Date", "flow", "conc")])
+ pairs(rc_synth[c("Date", "flow", "conc")])
 hist(rc_synth$conc)
 car::qqPlot(rc_synth$conc)
 

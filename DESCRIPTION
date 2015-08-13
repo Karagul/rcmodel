@@ -15,7 +15,6 @@ LazyData: TRUE
 Imports: assertthat,
     dplyr,
     mgcv,
-    conditionalSample,
     markstats,
     R.utils
 Suggests: testthat
