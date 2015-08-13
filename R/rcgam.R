@@ -59,13 +59,14 @@ rcgam <- function(formula, data, ...) {
 #'
 #' @param object An rcgam object to use for predicting
 #' @param newdata a data.frame containing precictor variables to use for prediction
+#' @param retransform Should the predictions be returned as concentrations? (defaults to TRUE)
 #' @param ... Arguments passed to `predict.gam` function call
 #' @param smear Use Smearing estimator to correct transformation bias?
 #'
 
 
 predict.rcgam <- function(object, newdata, flowcol = "flow",
-                          smear = TRUE,
+                          smear = TRUE, retransform = TRUE,
                           what = c("conc_mg.l", "load_kg.d"), ...) {
 
 
@@ -85,6 +86,9 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
   # }
 
   preds = mgcv::predict.gam(object = object, newdata = newdata, ...)
+
+  if(!retransform)
+    return(preds)
 
   if (smear) {
     if (is.list(preds))
@@ -108,7 +112,7 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
   if (missing(newdata))
     newdata = getData(object)
 
-  assertthat::assert_that(is.Date(newdata$Date))
+  assertthat::assert_that(is(newdata$Date, "Date"))
   assertthat::assert_that(flowcol %in% names(newdata))
   assertthat::assert_that("flow.units" %in% names(newdata))
   assertthat::assert_that(all(as.character(newdata$flow.units) == object$units["qunits"]))
@@ -118,8 +122,8 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
             time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
             doy = ~ as.numeric(format(Date, "%j")))
 
-  preds = markstats::condlSample.lm(object = object, newdata = newdata, quantile = quantile)
-  preds = object$transform$cinvert(preds)
+  preds = condlSample.lm(object = object, newdata = newdata,
+                         quantile = quantile, smear = FALSE, retransform = FALSE)
   preds
 }
 
