@@ -26,8 +26,30 @@ test_that("crossvalidation works for rcgams", {
   expect_true(all(conccvs < 1))
   expect_true(all(loadcvs < 1))
 
-#   expect_more_than(crossvalidate(mod2, what = "load"),
-#                    crossvalidate(mod2, what = "load", smear = FALSE))
+})
+
+test_that("crossvalidation works for log-space estimates", {
+  data(Phosphorus)
+  foo = makeModelData(Phosphorus)
+  mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), foo)
+
+  concloo = crossvalidate(mod2, what = "conc", retransform = FALSE)
+
+  conc5f = crossvalidate(mod2, what = "conc", retransform = FALSE, kf = 5)
+  concloo_nosmear = crossvalidate(mod2, what = "conc", retransform = FALSE,
+                                 smear = FALSE)
+
+  expect_is(concloo, "numeric")
+  expect_is(conc5f, "numeric")
+
+  expect_less_than(concloo, 1)
+  expect_less_than(conc5f, 1)
+  expect_equal(concloo, concloo_nosmear)
+
+  expect_error(crossvalidate(mod2, what = "load", retransform = FALSE))
+
+#   mod2$gcv.ubre
+#   crossvalidate(mod2, retransform = FALSE, statistic = "mse")
 })
 
 

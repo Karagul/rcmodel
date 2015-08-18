@@ -8,19 +8,26 @@ crossvalidate <- function(object, ...) {
 #' Crossvalidation for rcgam models
 #'
 #' @param what what quantity to predict/validate
+#' @param retransform compare predictions to observations in original uints?
+#' Must be TRUE if what == "load_kg.d"
 #' @param ... Passed to predict.rcgam
 #'
 #' @export
+
 crossvalidate.rcgam  <- function(object, kfolds = 0,
                                  statistic = c("R2", "mse", "mae", "rmse"),
-                                 what = c("conc_mg.l", "load_kg.d"), ...) {
+                                 what = c("conc_mg.l", "load_kg.d"),
+                                 retransform = TRUE, ...) {
   what = match.arg(what)
+  if(what == "load_kg.d" && ! retransform)
+    stop("Loads must be crossvalidated in original units")
   data <- getData(object)
+  data$c <- object$transform$ctrans(data$conc)
   data$load = calcLoad(data$conc, data$flow)
   fmla <- object$formula
 
-
-  yname <- ifelse(what == "conc_mg.l", "conc", "load") # sneaky back door for objects of my own design
+  yname <- ifelse(what == "conc_mg.l", ifelse(retransform, "conc", "c"),
+                  "load")
   statistic = match.arg(statistic)
   sfun = ifelse(statistic == "mae", "mae", "sse")
 
@@ -31,7 +38,8 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
       test <- data[fold, ]
       curobj <- do.call("rcgam", list(formula = fmla, data = train))
 
-      ypred <- as.numeric(predict(curobj, newdata = test, what = what, ...))
+      ypred <- as.numeric(predict(curobj, newdata = test, what = what,
+                                  retransform = retransform, ...))
       ymeas <- test[[yname]]
       preds[fold] = ypred
     }
@@ -56,7 +64,8 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
       test <- data[case.folds == fold, ]
       curobj <- do.call("rcgam", list(formula = fmla, data = train))
 
-      ypred <- as.numeric(predict(curobj, newdata = test, what = what, ...))
+      ypred <- as.numeric(predict(curobj, newdata = test, what = what,
+                                  retransform = retransform, ...))
       ymeas <- test[[yname]]
       fold.stat[fold] <- do.call(sfun, list(ymeas, ypred))
     }
