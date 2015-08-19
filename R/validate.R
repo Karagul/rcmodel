@@ -96,15 +96,24 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
 #'
 #' @param object an rcgam object
 #' @param condition a condition that returns logical when given a row of the
-#' @param What to obtain errors for (concentration or load)
 #' default newdata for predict(object)
+#' @param what What to obtain errors for (concentration or load)
+#' @param retransform Perform retransformation before calculating errors?
+#' @param scale How to scale the residuals? (For comparing multiple models
+#' for different datasets) Defaults to "none".
+#' @param kfolds For scale == "cv" only. How many folds to use for crossvalidation?
+#' @param incl.data Return data and scale along with residuals? If so, a list is returned.
 #' @param ... passed to predict.rcgam
 #'
 
 splitSampleTest <- function(object, condition,
                             what = c("conc_mg.l", "load_kg.d"),
-                            retransform = TRUE, ...) {
+                            retransform = TRUE,
+                            scale = c("none", "gcv", "cv"),
+                            kfolds = 30, incl.data = FALSE,
+                            ...) {
   what = match.arg(what)
+  scale = match.arg(scale)
   if(what == "load_kg.d" && ! retransform)
     stop("Loads must be crossvalidated in original units")
   data <- getData(object)
@@ -125,6 +134,21 @@ splitSampleTest <- function(object, condition,
                               retransform = retransform, ...))
   ymeas <- test[[yname]]
 
-  out <- data.frame(obs = ymeas, pred = ypred, resid = ymeas - ypred)
+  if (scale == "gcv") {
+    if(retransform)
+      stop("gcv scaling only works on transformed values")
+    denom <- sqrt(curobj$gcv.ubre)
+  } else if (scale == "cv") {
+    message("crossvalidating")
+    denom <- crossvalidate(curobj, statistic = "rmse", kfolds = kfolds,
+                           what = what, retransform = retransform)
+  } else
+    denom <- 1
+  ypred <- ypred / denom
+  ymeas <- ymeas / denom
+
+  out <- ymeas - ypred
+  if (incl.data)
+    out <- list(resid = out, data = test, scale = setNames(denom, scale))
   out
 }
