@@ -104,7 +104,7 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
 #' @param kfolds For scale == "cv" only. How many folds to use for crossvalidation?
 #' @param incl.data Return data and scale along with residuals? If so, a list is returned.
 #' @param ... passed to predict.rcgam
-#'
+#' @export
 
 splitSampleTest <- function(object, condition,
                             what = c("conc_mg.l", "load_kg.d"),
