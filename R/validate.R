@@ -127,27 +127,32 @@ splitSampleTest <- function(object, condition,
   split <- eval(substitute(condition), data)
   train <- data[!split, ]
   test <- data[split, ]
+  if(sum(split) == 0) {
+    out = numeric(0)
+    denom = NA
+  } else {
 
-  curobj <- do.call("rcgam", list(formula = fmla, data = train))
+    curobj <- do.call("rcgam", list(formula = fmla, data = train))
+    ypred <- as.numeric(predict(curobj, newdata = test, what = what,
+                                retransform = retransform, ...))
+    ymeas <- test[[yname]]
 
-  ypred <- as.numeric(predict(curobj, newdata = test, what = what,
-                              retransform = retransform, ...))
-  ymeas <- test[[yname]]
+    if (scale == "gcv") {
+      if(retransform)
+        stop("gcv scaling only works on transformed values")
+      denom <- sqrt(curobj$gcv.ubre)
+    } else if (scale == "cv") {
+      message("crossvalidating")
+      denom <- crossvalidate(curobj, statistic = "rmse", kfolds = kfolds,
+                             what = what, retransform = retransform)
+    } else
+      denom <- 1
+    ypred <- ypred / denom
+    ymeas <- ymeas / denom
 
-  if (scale == "gcv") {
-    if(retransform)
-      stop("gcv scaling only works on transformed values")
-    denom <- sqrt(curobj$gcv.ubre)
-  } else if (scale == "cv") {
-    message("crossvalidating")
-    denom <- crossvalidate(curobj, statistic = "rmse", kfolds = kfolds,
-                           what = what, retransform = retransform)
-  } else
-    denom <- 1
-  ypred <- ypred / denom
-  ymeas <- ymeas / denom
+    out <- ymeas - ypred
+  }
 
-  out <- ymeas - ypred
   if (incl.data)
     out <- list(resid = out, data = test, scale = setNames(denom, scale))
   out

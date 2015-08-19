@@ -72,6 +72,10 @@ test_that("differential split-sample tests work as intended", {
 
   expect_less_than(sd(conc2), sd(conc2$obs))
 
+  expect_equal(length(splitSampleTest(mod1, flow > max(flow))), 0)
+  expect_is(splitSampleTest(mod1, flow > max(flow), incl.data = TRUE),
+            "list")
+
   testErrs <- splitSampleTest(mod1, scale(log(flow)) > maxlq)
   expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - qtl)
   expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - qtl)
