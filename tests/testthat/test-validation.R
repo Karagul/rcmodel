@@ -60,10 +60,20 @@ test_that("differential split-sample tests work as intended", {
   qtl <- 0.9
   maxlq <- quantile(scale(log(getData(mod1)$flow)), qtl)
 
-  testErrs <- splitSampleTest(mod1, scale(log(flow)) > maxlq)
-#   hist(testErrs)
+  conc1 <- splitSampleTest(mod1, scale(log(flow)) > maxlq)
+  load1 <- splitSampleTest(mod1, scale(log(flow)) > maxlq, what = "load")
+  conc2 <- splitSampleTest(mod1, scale(log(flow)) > maxlq, retransform = FALSE)
 
-  expect_is(testErrs, "numeric")
+  expect_error(splitSampleTest(mod1, scale(log(flow)) > maxlq, what = "load",
+                               retransform = FALSE)$resid)
+
+  expect_is(conc1$resid, "numeric")
+  expect_is(conc2$resid, "numeric")
+  expect_is(load1$resid, "numeric")
+
+  expect_less_than(sd(conc2$resid), sd(conc2$obs))
+
+  testErrs <- splitSampleTest(mod1, scale(log(flow)) > maxlq)$resid
   expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - qtl)
   expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - qtl)
 

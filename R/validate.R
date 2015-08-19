@@ -103,24 +103,28 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
 
 splitSampleTest <- function(object, condition,
                             what = c("conc_mg.l", "load_kg.d"),
-                            ...) {
-  what <- match.arg(what)
-  stopifnot(is(object, "rcgam"))
+                            retransform = TRUE, ...) {
+  what = match.arg(what)
+  if(what == "load_kg.d" && ! retransform)
+    stop("Loads must be crossvalidated in original units")
   data <- getData(object)
+  data$c <- object$transform$ctrans(data$conc)
+  data$load = calcLoad(data$conc, data$flow)
+  fmla <- object$formula
+
+  yname <- ifelse(what == "conc_mg.l", ifelse(retransform, "conc", "c"),
+                  "load")
 
   split <- eval(substitute(condition), data)
   train <- data[!split, ]
   test <- data[split, ]
 
-  fmla <- object$formula
-  yname <- ifelse(what == "conc_mg.l", "conc", "load")
-
   curobj <- do.call("rcgam", list(formula = fmla, data = train))
 
-  ypred <- as.numeric(predict(curobj, newdata = test, what = what, ...))
+  ypred <- as.numeric(predict(curobj, newdata = test, what = what,
+                              retransform = retransform, ...))
   ymeas <- test[[yname]]
 
-  out <- ymeas - ypred
+  out <- data.frame(obs = ymeas, pred = ypred, resid = ymeas - ypred)
   out
 }
-
