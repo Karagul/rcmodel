@@ -6,6 +6,27 @@
 \usage{
 makeModelData(rawData)
 }
+\arguments{
+\item{rawData}{The data to convert. Currently methods only exist for
+data.frame, but rcData objects may be added in the future.}
+
+\item{model}{(optional) A model from which to extract transformation
+information.}
+
+\item{flowTransform}{Which transformation to use (link argument in
+stats::make.link)}
+
+\item{concTransform}{Which transformation to use (link argument in
+stats::make.link)}
+
+\item{qbar}{(optional) mean to use for flow scaling post-transform.}
+
+\item{qsd}{(optional) stdev to use for flow scaling post-transform.}
+
+\item{cbar}{(optional) mean to use for concentration scaling post-transform.}
+
+\item{csd}{(optional) stdev to use for concentration scaling post-transform.}
+}
 \description{
 Make model data from "raw" data
 }
