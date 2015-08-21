@@ -1,19 +1,29 @@
 #' Make model data from "raw" data
 #'
-#'
-#'
-#'
+#' @param rawData The data to convert. Currently methods only exist for
+#' data.frame, but rcData objects may be added in the future.
+#' @param model (optional) A model from which to extract transformation
+#' information.
+#' @param flowTransform Which transformation to use (link argument in
+#' stats::make.link)
+#' @param concTransform Which transformation to use (link argument in
+#' stats::make.link)
+#' @param qbar (optional) mean to use for flow scaling post-transform.
+#' @param qsd (optional) stdev to use for flow scaling post-transform.
+#' @param cbar (optional) mean to use for concentration scaling post-transform.
+#' @param csd (optional) stdev to use for concentration scaling post-transform.
+#' @export
 
 
 makeModelData <- function(rawData) UseMethod("makeModelData")
 
-#
-# make model data from a data frame
-#
+#' @export
 
 makeModelData.data.frame <- function(rawData, model = NULL,
                                      flowTransform = "log",
-                                     concTransform = "log") {
+                                     concTransform = "log",
+                                     qbar = NULL, qsd = NULL,
+                                     cbar = NULL, csd = NULL) {
 
   neededCols <- c("Date", "flow", "flow.units", "conc", "conc.units", "is.bdl")
   diffs = setdiff(neededCols, names(rawData))
@@ -50,13 +60,13 @@ makeModelData.data.frame <- function(rawData, model = NULL,
     concLink = stats::make.link(concTransform)
 
     q_scale = scale(flowLink$linkfun(rawData[["flow"]]))
-    qbar = attr(q_scale, "scaled:center")
-    qsd  = attr(q_scale, "scaled:scale")
+    qbar <- ifelse(is.null(qbar), attr(q_scale, "scaled:center"), qbar)
+    qsd  <- ifelse(is.null(qsd), attr(q_scale, "scaled:scale"), qsd)
     qtransform = transf(flowLink, qbar, qsd)
 
     c_scale = scale(concLink$linkfun(rawData[["conc"]]))
-    cbar = attr(c_scale, "scaled:center")
-    csd  = attr(c_scale, "scaled:scale")
+    cbar <- ifelse(is.null(cbar), attr(c_scale, "scaled:center"), cbar)
+    csd <- ifelse(is.null(csd), attr(c_scale, "scaled:scale"), csd)
     ctransform = transf(concLink, cbar, csd)
 
     datebar = mean(rawData$Date)
