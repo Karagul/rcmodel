@@ -7,6 +7,7 @@
 #' @param ... Passed to predict.rcgam
 #'
 #' @export
+#' @importFrom markstats crossvalidate
 
 crossvalidate.rcgam  <- function(object, kfolds = 0,
                                  statistic = c("R2", "mse", "mae", "rmse"),
@@ -110,8 +111,10 @@ splitSampleTest <- function(object, condition,
   scale = match.arg(scale)
   if(what == "load_kg.d" && ! retransform)
     stop("Loads must be crossvalidated in original units")
-  data <- getData(object)
-  data$c <- object$transform$ctrans(data$conc)
+  data1 <- getData(object)
+  data2 <- getData(object, type = "rcData")
+  data <- cbind(data1, data2[setdiff(names(data2), names(data1))])
+
   data$load = calcLoad(data$conc, data$flow)
   fmla <- object$formula
 

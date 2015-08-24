@@ -61,7 +61,8 @@ test_that("differential split-sample tests work as intended", {
 
   conc1 <- splitSampleTest(mod1, scale(log(flow)) > maxlq)
   load1 <- splitSampleTest(mod1, scale(log(flow)) > maxlq, what = "load")
-  conc2 <- splitSampleTest(mod1, scale(log(flow)) > maxlq, retransform = FALSE)
+  conc2 <- splitSampleTest(mod1, scale(log(flow)) > maxlq,
+                           retransform = FALSE)
 
   expect_error(splitSampleTest(mod1, scale(log(flow)) > maxlq, what = "load",
                                retransform = FALSE))
@@ -70,15 +71,17 @@ test_that("differential split-sample tests work as intended", {
   expect_is(conc2, "numeric")
   expect_is(load1, "numeric")
 
-  expect_less_than(sd(conc2), sd(conc2$obs))
 
   expect_equal(length(splitSampleTest(mod1, flow > max(flow))), 0)
   expect_is(splitSampleTest(mod1, flow > max(flow), incl.data = TRUE),
             "list")
-
+  expect_less_than(nrow(splitSampleTest(mod1, q > 1, incl.data = TRUE)$data),
+                   nrow(splitSampleTest(mod1, q > 0.5, incl.data = TRUE)$data))
   testErrs <- splitSampleTest(mod1, scale(log(flow)) > maxlq)
   expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - qtl)
   expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - qtl)
+
+
 })
 
 
