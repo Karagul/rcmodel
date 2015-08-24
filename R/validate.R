@@ -125,6 +125,7 @@ splitSampleTest <- function(object, condition,
   train <- data[!split, ]
   test <- data[split, ]
   if(sum(split) == 0) {
+    curobj = object
     out = numeric(0)
     denom = NA
   } else {
@@ -150,7 +151,12 @@ splitSampleTest <- function(object, condition,
     out <- ymeas - ypred
   }
 
+  tss = sum((curobj$y - mean(curobj$y))^2)
+  gof = list(NSE = curobj$NSE,
+             R2 = 1 - sum(residuals(curobj, type = "response")^2) / tss,
+             R2_gcv = 1 - curobj$gcv.ubre * nrow(train) / tss)
+
   if (incl.data)
-    out <- list(resid = out, data = test, scale = setNames(denom, scale))
+    out <- list(resid = out, data = test, scale = setNames(denom, scale), gof = gof)
   out
 }
