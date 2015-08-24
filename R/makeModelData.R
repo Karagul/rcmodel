@@ -15,7 +15,9 @@
 #' @export
 
 
-makeModelData <- function(rawData) UseMethod("makeModelData")
+makeModelData <- function(rawData, ...) {
+  UseMethod("makeModelData")
+}
 
 #' @export
 
@@ -75,8 +77,8 @@ makeModelData.data.frame <- function(rawData, model = NULL,
     modelData <- rawData %>%
       mutate_(time = ~ as.numeric(Date) - as.numeric(datebar),
               doy = ~ as.numeric(format(Date, "%j")),
-              q = ~ as.vector(q_scale),
-              c = ~ as.vector(c_scale)) %>%
+              q = ~ qtransform$trans(flow),
+              c = ~ ctransform$trans(conc)) %>%
       select_("-flow", "-flow.units", "-conc", "-conc.units")
 
     translist <- list(qtrans = qtransform$trans,

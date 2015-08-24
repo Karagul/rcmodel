@@ -79,3 +79,13 @@ test_that("load unit conversion works", {
   expect_less_than(abs(calcLoad(flow = 1, conc = 1) - 3600 * 24 * 28.3168 / 1000000),
                    0.0001)
 })
+
+test_that("custom arguments to makeModelData behave as intended", {
+  data(Phosphorus)
+
+  dat1 <- makeModelData(Phosphorus)
+  dat2 <- makeModelData(Phosphorus, qbar = 3, qsd = 0.8)
+  expect_more_than(abs(mean(dat2$q)), abs(mean(dat1$q)))
+  expect_more_than(abs(sd(dat2$q) - 1), abs(sd(dat1$q) - 1))
+
+})
