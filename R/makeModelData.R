@@ -172,10 +172,6 @@ transf.Date <- function(object, center, scale = 1) {
 }
 
 
-getData <- function(object, ...) {
-  UseMethod("getData")
-}
-
 #' Get data from rcgam objects
 #'
 #' simple extraction of data, returning useful errors if impossible. Useful as a
@@ -184,7 +180,7 @@ getData <- function(object, ...) {
 #' @param object an object of class `rcgam`
 #' @param type What kind of data to return--raw or transformed (rcData object)
 #' @export
-#'
+#' @importFrom markstats getData
 
 getData.rcgam <- function(object, type = c("raw", "rcData")) {
   type = match.arg(type)

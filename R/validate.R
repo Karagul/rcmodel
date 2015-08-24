@@ -1,9 +1,3 @@
-#' @export
-
-crossvalidate <- function(object, ...) {
-  UseMethod("crossvalidate")
-}
-
 
 #' Crossvalidation for rcgam models
 #'

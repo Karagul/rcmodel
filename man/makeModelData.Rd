@@ -4,7 +4,7 @@
 \alias{makeModelData}
 \title{Make model data from "raw" data}
 \usage{
-makeModelData(rawData)
+makeModelData(rawData, ...)
 }
 \arguments{
 \item{rawData}{The data to convert. Currently methods only exist for
