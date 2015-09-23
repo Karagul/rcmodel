@@ -106,6 +106,7 @@ predict.rcgam <- function(object, newdata, flowcol = "flow",
 
 
 #' @export
+#' @importFrom markstats condlSample
 condlSample.rcgam <- function(object, newdata, flowcol = "flow",
                               flow.units = "CFS", quantile) {
 
@@ -122,7 +123,7 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
             time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
             doy = ~ as.numeric(format(Date, "%j")))
 
-  preds = condlSample.lm(object = object, newdata = newdata,
+  preds = markstats::condlSample.lm(object = object, newdata = newdata,
                          quantile = quantile, smear = FALSE, retransform = FALSE)
   preds = object$transform$cinvert(preds)
   preds
