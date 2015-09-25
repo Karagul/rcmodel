@@ -21,7 +21,7 @@ use_package("dplyr", type = "Depends")
 use_package("mgcv")
 use_package("conditionalSample")
 use_package("nlme")
-use_package("markstats", type = "Depends")
+# use_package("markstats", type = "Depends")
 use_package("R.utils")
 use_testthat()
 

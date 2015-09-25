@@ -52,80 +52,8 @@ rcgam <- function(formula, data, ...) {
   structure(out, class = c("rcgam", "gam", "glm", "lm"))
 }
 
-
-#' Predict method for rcgam fits
-#'
-#' Predict values using an rcgam model object
-#'
-#' @param object An rcgam object to use for predicting
-#' @param newdata a data.frame containing precictor variables to use for prediction
-#' @param retransform Should the predictions be returned as concentrations? (defaults to TRUE)
-#' @param ... Arguments passed to `predict.gam` function call
-#' @param smear Use Smearing estimator to correct transformation bias?
-#'
-
-
-predict.rcgam <- function(object, newdata, flowcol = "flow",
-                          smear = TRUE, retransform = TRUE,
-                          what = c("conc_mg.l", "load_kg.d"), ...) {
-
-
-  what = match.arg(what)
-
-  tfm <- object$transform
-  if (missing(newdata))
-    newdata = getData(object, type = "raw")
-    if(!all(newdata$flow.units == "CFS"))
-      stop("units other than CFS not currently supported")
-    if(!all(newdata$conc.units %in% c("mg/L", "mg/l")))
-      stop("units other than mg/L not currently supported")
-    newdata <- newdata %>%
-      mutate_(q = ~ tfm$qtrans(newdata[[flowcol]]),
-              time = ~ tfm$ttrans(as.numeric(Date)),
-              doy = ~ as.numeric(format(Date, "%j")))
-  # }
-
-  preds = mgcv::predict.gam(object = object, newdata = newdata, ...)
-
-  if(!retransform)
-    return(preds)
-
-  if (smear) {
-    if (is.list(preds))
-      preds$fit = object$transform$cinvert(preds$fit) * object$smearCoef
-    else preds = object$transform$cinvert(preds) * object$smearCoef
-  } else {
-    if (is.list(preds))
-      preds$fit = object$transform$cinvert(preds$fit)
-    else preds = object$transform$cinvert(preds)
-  }
-  if(what == "load_kg.d")
-    preds = calcLoad(flow = newdata[[flowcol]], conc = preds)
-  preds
-}
-
-
 #' @export
-#' @importFrom markstats condlSample
-condlSample.rcgam <- function(object, newdata, flowcol = "flow",
-                              flow.units = "CFS", quantile) {
-
-  if (missing(newdata))
-    newdata = getData(object)
-
-  assertthat::assert_that(is(newdata$Date, "Date"))
-  assertthat::assert_that(flowcol %in% names(newdata))
-  assertthat::assert_that("flow.units" %in% names(newdata))
-  assertthat::assert_that(all(as.character(newdata$flow.units) == object$units["qunits"]))
-
-  newdata <- newdata %>%
-    mutate_(q = ~ object$transform$qtrans(newdata[[flowcol]]),
-            time = ~ as.numeric(Date) - as.numeric(object$stats["datebar"]),
-            doy = ~ as.numeric(format(Date, "%j")))
-
-  preds = markstats::condlSample.lm(object = object, newdata = newdata,
-                         quantile = quantile, smear = FALSE, retransform = FALSE)
-  preds = object$transform$cinvert(preds)
-  preds
+predict.rcgam <- function(object, ...) {
+  mgcv::predict.gam(object, ...)
 }
 
