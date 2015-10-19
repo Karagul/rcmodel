@@ -45,11 +45,13 @@ makeModelData.data.frame <- function(rawData, model = NULL,
 
   if(!is.null(model)) {
     stopifnot(is(model, "rcgam"))
-    assertthat::assert_that(all(model$units$qunits == rawData$flow.units),
-                all(model$units$cunits == rawData$conc.units))
+    assertthat::assert_that(all(model$units["qunits"] == rawData$flow.units),
+                all(model$units["cunits"] == rawData$conc.units))
     tf = model$transform
     modelData <- rawData %>%
-      mutate_(q = ~tf$qtrans(rawData$flow),
+      mutate_(time = ~ tf$ttrans(Date),
+              doy = ~ as.numeric(format(Date, "%j")),
+              q = ~tf$qtrans(rawData$flow),
               c = ~tf$ctrans(rawData$conc)) %>%
       select_("-flow", "-flow.units", "-conc", "-conc.units")
     stats = model$stats
@@ -88,11 +90,12 @@ makeModelData.data.frame <- function(rawData, model = NULL,
                       ttrans = ttransform$trans,
                       tinvert = ttransform$invert)
     units = c(qunits = qunits, cunits = cunits)
+    stats = c(datebar = datebar, qbar = qbar, qsd = qsd,
+              cbar = cbar, csd = csd)
   }
 
   structure(modelData, class = c("rcData", "data.frame"),
-            stats = c(datebar = datebar, qbar = qbar, qsd = qsd,
-                      cbar = cbar, csd = csd),
+            stats = stats,
             transform = translist,
             units = units)
 }
@@ -207,23 +210,46 @@ getData.rcgam <- function(object, type = c("raw", "rcData")) {
   r
 }
 
-#' Calculate loads from concentration and flow
+#' Make prediction data from "raw" data
 #'
-#' Performs appropriate unit conversion to go from flow and concentration to load
+#' Similar to makeModelData, but requires a model to be supplied and does
+#' not expect concentration data to be present.
 #'
+#' @param rawData The data to convert. Currently methods only exist for
+#' data.frame, but rcData objects may be added in the future.
+#' @param model A model from which to extract transformation
+#' information.
 #' @export
 
-calcLoad <- function(flow, conc, flow.units = "CFS", conc.units = "mg/l", load.units = "kg/day") {
-  if(flow.units != "CFS" || conc.units != "mg/l" || load.units != "kg/day")
-    stop("units other than CFS, mg/l, kg/day not currently supported. Must use defaults for now.")
+makePredData <- function(rawData, object) {
+  neededCols <- c("Date", "flow", "flow.units")
+  diffs = setdiff(neededCols, names(rawData))
+  if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
+                                   paste(diffs, collapse = ", ")))
 
-  siflowconst <- c("CFS" = 28.3168466)
-  siconcconst <- c("mg/l" = 1 / 1000000)
-  siloadconst <- c("kg/day" = 1 / (24 * 3600))
+  qunits = as.character(unique(rawData[["flow.units"]]))
+  if(length(qunits) != 1) stop(paste("Data must all have the same flow units:", qunits))
 
-  out = flow * siflowconst[flow.units] * conc * siconcconst[conc.units] / siloadconst[load.units]
-  unname(out)
+  rawData[["Date"]] = as.Date(rawData[["Date"]])
+  assertthat::assert_that(is(rawData$flow, "numeric"))
+
+  stopifnot(is(object, "rcgam"))
+  assertthat::assert_that(all(object$units["qunits"] == rawData$flow.units))
+  tf = object$transform
+  modelData <- rawData %>%
+    mutate_(time = ~ tf$ttrans(Date),
+            doy = ~ as.numeric(format(Date, "%j")),
+            q = ~tf$qtrans(rawData$flow)) %>%
+    select_("-flow", "-flow.units")
+  stats = object$stats
+  translist = object$transform
+  units = object$units
+
+  out <- structure(modelData, class = c("rcData", "data.frame"),
+                     stats = stats,
+                     transform = translist,
+                     units = units)
+  out
 }
-
 
 

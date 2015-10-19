@@ -52,8 +52,28 @@ rcgam <- function(formula, data, ...) {
   structure(out, class = c("rcgam", "gam", "glm", "lm"))
 }
 
+#' Predict method for rcgam model objects
+#'
+#' @return  a list with element "fit" and potentially others,
+#' depending on optional arguments passed. See help("predict.gam", package = "mgcv") for more info
+#' The difference is that here the returned value will always be a list, possibly of length 1.
 #' @export
-predict.rcgam <- function(object, ...) {
-  mgcv::predict.gam(object, ...)
+predict.rcgam <- function(object, smear = TRUE, retrans = TRUE, ...) {
+  arglist = list(...)
+  if("newdata" %in% names(arglist) && !is(arglist$newdata, "rcData"))
+    arglist$newdata = makePredData(arglist$newdata, object = object)
+
+  predfun <- get("predict.gam", asNamespace("mgcv"))
+  out = do.call("predfun", args = c(list(object = object), arglist))
+  if(!is(out, "list"))
+    # browser()
+    out = list(fit = out)
+  if (retrans){
+    out$fit = object$transform$cinvert(out$fit)
+    if (smear)
+      out$fit = out$fit * object$smearCoef
+  } else if(smear)
+    warning("smearing not applicable with non-retransformed predictions. Ignoring this argument.")
+  out
 }
 

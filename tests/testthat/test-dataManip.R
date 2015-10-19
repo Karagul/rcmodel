@@ -18,6 +18,21 @@ test_that("makeModelData and makeRawData are inversions of each other", {
   expect_equal(moddat2, rawdat2)
 })
 
+test_that("data manipulation works using an rcgam object", {
+  data(Phosphorus)
+  pdat = makeModelData(Phosphorus)
+  mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
+  fakepred = data.frame(Date = Sys.Date() - 3:1, flow = rlnorm(3),
+                        flow.units = rep("CFS", 3),
+                        conc = rlnorm(3), conc.units = rep("mg/l", 3),
+                        is.bdl = rep(FALSE, 3))
+
+  expect_is(makeModelData(fakepred, model = mod2), "rcData")
+
+  expect_is(makePredData(Phosphorus, object = mod2), "rcData")
+})
+
+
 test_that("getData works for rcgams", {
   data(Phosphorus)
   pdat = makeModelData(Phosphorus)

@@ -132,7 +132,7 @@ splitSampleTest <- function(object, condition,
 
     curobj <- do.call("rcgam", list(formula = fmla, data = train))
     ypred <- as.numeric(predict(curobj, newdata = test, what = what,
-                                retransform = retransform, ...))
+                                retransform = retransform, ...)$fit)
     ymeas <- test[[yname]]
 
     if (scale == "gcv") {
