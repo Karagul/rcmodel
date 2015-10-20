@@ -118,9 +118,13 @@ makeModelData.wqData <- function(rawData) {
 #'
 #' @param data transformed data.
 #' @param tfm a list containing transformation functions, not necessary if data is an rcData object.
+#' @export
 
-makeRawData <- function(data, ...) UseMethod("makeRawData")
+makeRawData <- function(data, ...) {
+  UseMethod("makeRawData")
+}
 
+#' @export
 makeRawData.rcData <- function(data) {
   du <- attr(data, "units")
   tfm <- attr(data, "transform")
@@ -135,6 +139,7 @@ makeRawData.rcData <- function(data) {
   rawData
 }
 
+#' @export
 makeRawData.data.frame <- function(data, tfm, units) {
   rawData <- data %>%
     mutate_(flow = ~ tfm$qinvert(q),
