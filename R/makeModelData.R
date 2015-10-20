@@ -175,40 +175,6 @@ transf.Date <- function(object, center, scale = 1) {
 }
 
 
-#' Get data from rcgam objects
-#'
-#' simple extraction of data, returning useful errors if impossible. Useful as a
-#' method for the generic `getData` from `nlme` package
-#'
-#' @param object an object of class `rcgam`
-#' @param type What kind of data to return--raw or transformed (rcData object)
-#' @export
-#' @importFrom markstats getData
-
-getData.rcgam <- function(object, type = c("raw", "rcData")) {
-  type = match.arg(type)
-
-  out <- if (is.null(object$data)) {
-    warning("model structure does not include data. Attempting to get from environment")
-    eval(object$call$data, envir = attr(object$terms, ".Environment"))
-  }
-  else
-    object$data
-
-  if(type == "raw")
-    out <- makeRawData(out)
-  out
-}
-
-#' @export
-`[.rcData` <- function(x, i, ...) {
-  r <- NextMethod("[")
-  ats <- attributes(x)
-  ats$names = names(r)
-  ats$row.names = 1:nrow(r)
-  mostattributes(r) <- ats
-  r
-}
 
 #' Make prediction data from "raw" data
 #'
@@ -252,4 +218,12 @@ makePredData <- function(rawData, object) {
   out
 }
 
-
+#' @export
+`[.rcData` <- function(x, i, ...) {
+  r <- NextMethod("[")
+  ats <- attributes(x)
+  ats$names = names(r)
+  ats$row.names = 1:nrow(r)
+  mostattributes(r) <- ats
+  r
+}
