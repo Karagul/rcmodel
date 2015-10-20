@@ -13,18 +13,19 @@
 #'
 #' @param formula a GAM formula. See `help("gam", package = "mgcv")` for details.
 #' @param data an object of class rcData, generated using `makeModelData`, or a data frame that makeModelData can use.
+#' @param timeout the amount of time in seconds to try mgcv::gam before stopping with a timeout error
 #' @param ... further arguments passed to `mgcv::gam`
 #' @export
 
 
-rcgam <- function(formula, data, ...) {
+rcgam <- function(formula, data, timeout = 1, ...) {
   cl <- match.call()
   if (!is(data, "rcData"))
     data = makeModelData(data)
   formula = as.formula(formula)
 
   #   browser()
-  out = R.utils::withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = 1,
+  out = R.utils::withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = timeout,
                              onTimeout = "error")
   out$call = cl
 
