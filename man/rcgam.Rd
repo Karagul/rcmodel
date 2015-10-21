@@ -4,12 +4,14 @@
 \alias{rcgam}
 \title{Rating-curve generalized additive model}
 \usage{
-rcgam(formula, data, ...)
+rcgam(formula, data, timeout = 1, ...)
 }
 \arguments{
 \item{formula}{a GAM formula. See `help("gam", package = "mgcv")` for details.}
 
 \item{data}{an object of class rcData, generated using `makeModelData`, or a data frame that makeModelData can use.}
+
+\item{timeout}{the amount of time in seconds to try mgcv::gam before stopping with a timeout error}
 
 \item{...}{further arguments passed to `mgcv::gam`}
 }

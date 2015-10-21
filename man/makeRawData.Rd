@@ -9,7 +9,13 @@ makeRawData(data, ...)
 \arguments{
 \item{data}{transformed data.}
 
-\item{tfm}{a list containing transformation functions, not necessary if data is an rcData object.}
+\item{rcmodel}{Optional model of class rcgam or rclm from which to extract information.}
+
+\item{tfm}{a list containing transformation functions, not necessary if
+data is an rcData object or `rcmodel` is supplied.}
+
+\item{units}{a list containing units information, not necessary if
+data is an rcData object or if `rcmodel` is supplied.}
 }
 \description{
 Generic function for getting untransformed data from transformed data and

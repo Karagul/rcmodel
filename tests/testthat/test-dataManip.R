@@ -4,11 +4,21 @@ context("data manipulation")
 
 test_that("makeModelData and makeRawData are inversions of each other", {
   data(Phosphorus)
+
+  todf <- function(obj) {
+    nms = names(obj)
+    attributes(obj) = NULL
+    setNames(data.frame(obj), nms)
+  }
+
   moddat1 = makeModelData(Phosphorus)
-  rawdat1 = makeModelData(makeRawData(moddat1))[names(moddat1)]
-  attributes(rawdat1) = NULL
-  attributes(moddat1) = NULL
-  expect_equal(moddat1, rawdat1)
+  rawdat1 = makeRawData(moddat1)
+  expect_equal(todf(moddat1), todf(makeModelData(rawdat1))[names(moddat1)])
+
+  mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), moddat1)
+  moddat1.1 = setNames(as.data.frame(moddat1), names1)
+  rawdat1.1 = makeRawData(todf(moddat1.1), rcmodel = mod2)
+  expect_equal(todf(moddat1.1), todf(makeModelData(rawdat1.1))[names(moddat1.1)])
 
   data(rc_synth)
   moddat2 = makeModelData(rc_synth)

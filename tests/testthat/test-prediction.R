@@ -59,4 +59,21 @@ test_that("conditional samples are correct", {
   rc_synth
 })
 
+test_that("restricting predictions works", {
+  data(Phosphorus)
+  pdat = makeModelData(Phosphorus)
+  mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
 
+  hinewdat = makeRawData(data.frame(q = 10, c = 0, doy = 10,
+                                    time = 0, is.bdl = FALSE), rcmodel = mod2)
+  lonewdat = makeRawData(data.frame(q = -10, c = 0, doy = 10,
+                                    time = 0, is.bdl = FALSE), rcmodel = mod2)
+
+  expect_equal(as.numeric(predict(mod2, restrict = TRUE, smear = FALSE,
+                            retrans = FALSE, newdata = hinewdat)$fit),
+                    max(mod2$model$c))
+
+  expect_equal(as.numeric(predict(mod2, restrict = TRUE, smear = FALSE,
+                                  retrans = FALSE, newdata = lonewdat)$fit),
+               min(mod2$model$c))
+})
