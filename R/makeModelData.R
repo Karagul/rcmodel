@@ -117,7 +117,11 @@ makeModelData.wqData <- function(rawData) {
 #' some specification of transformation.
 #'
 #' @param data transformed data.
-#' @param tfm a list containing transformation functions, not necessary if data is an rcData object.
+#' @param rcmodel Optional model of class rcgam or rclm from which to extract information.
+#' @param tfm a list containing transformation functions, not necessary if
+#' data is an rcData object or `rcmodel` is supplied.
+#' @param units a list containing units information, not necessary if
+#' data is an rcData object or if `rcmodel` is supplied.
 #' @export
 
 makeRawData <- function(data, ...) {
@@ -140,7 +144,13 @@ makeRawData.rcData <- function(data) {
 }
 
 #' @export
-makeRawData.data.frame <- function(data, tfm, units) {
+makeRawData.data.frame <- function(data, rcmodel = NULL,
+                                   tfm = rcmodel$transform,
+                                   units = rcmodel$units) {
+  if (!is.null(rcmodel)) {
+    tfm <- rcmodel$transform
+    units <- rcmodel$units
+  }
   rawData <- data %>%
     mutate_(flow = ~ tfm$qinvert(q),
             flow.units = ~ units["qunits"],

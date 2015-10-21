@@ -55,20 +55,34 @@ rcgam <- function(formula, data, timeout = 1, ...) {
 
 #' Predict method for rcgam model objects
 #'
+#' @param object an object of type rcgam, with which to make predictions
+#' @param smear Unbias the predictions using the smearing coefficient? Defaults to TRUE
+#' @param retrans Retransform the predictions into the original units? Defaults to TRUE
+#' @param restrict Restrict the range of predictions to those observed in the calibration data? Defaults to FALSE.
+#' @param ... Other arguments passed to mgcv::predict.gam
+#'
+#'
 #' @return  a list with element "fit" and potentially others,
 #' depending on optional arguments passed. See help("predict.gam", package = "mgcv") for more info
 #' The difference is that here the returned value will always be a list, possibly of length 1.
 #' @export
-predict.rcgam <- function(object, smear = TRUE, retrans = TRUE, ...) {
+predict.rcgam <- function(object, smear = TRUE, retrans = TRUE, restrict = FALSE, ...) {
   arglist = list(...)
   if("newdata" %in% names(arglist) && !is(arglist$newdata, "rcData"))
     arglist$newdata = makePredData(arglist$newdata, object = object)
 
   predfun <- get("predict.gam", asNamespace("mgcv"))
-  out = do.call("predfun", args = c(list(object = object), arglist))
-  if(!is(out, "list"))
+  out <- do.call("predfun", args = c(list(object = object, type = "response"), arglist))
+
+  if (!is(out, "list"))
     # browser()
     out = list(fit = out)
+  if (restrict) {
+    cmax <- max(object$model$c)
+    cmin <- min(object$model$c)
+    out$fit[out$fit > cmax] <- cmax
+    out$fit[out$fit < cmin] <- cmin
+  }
   if (retrans){
     out$fit = object$transform$cinvert(out$fit)
     if (smear)
