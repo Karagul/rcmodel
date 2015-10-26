@@ -24,12 +24,15 @@ test_that("rcgam can predict using raw data and subsets thereof", {
   expect_equal(predict(mod2, newdata = Phosphorus[1:10, ])$fit, predict(mod2)$fit[1:10])
 })
 
-test_that("smeared predictions are unbiased", {
+test_that("predictions are unbiased", {
   data(Phosphorus)
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), Phosphorus)
   expect_less_than(abs(mean(predict(mod2, smear = TRUE)$fit) - mean(Phosphorus$conc)),
                    .Machine$double.eps)
   expect_more_than(abs(mean(predict(mod2, smear = FALSE)$fit) - mean(Phosphorus$conc)),
+                   .Machine$double.eps)
+
+  expect_less_than(abs(mean(predict(mod2, retrans = FALSE, smear = FALSE)$fit)),
                    .Machine$double.eps)
 })
 

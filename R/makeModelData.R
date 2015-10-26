@@ -28,9 +28,17 @@ makeModelData.data.frame <- function(rawData, model = NULL,
                                      cbar = NULL, csd = NULL) {
 
   neededCols <- c("Date", "flow", "flow.units", "conc", "conc.units", "is.bdl")
-  diffs = setdiff(neededCols, names(rawData))
-  if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
-                                   paste(diffs, collapse = ", ")))
+  diffs <- setdiff(neededCols, names(rawData))
+  if(length(diffs) > 0)
+    stop(paste("rawData is missing the following needed column(s):",
+               paste(diffs, collapse = ", ")))
+
+  absentCols <- c("c", "q", "doy", "time")
+  sames <- intersect(absentCols, names(rawData))
+  if(length(sames) > 0)
+    warning(paste("The following columns will be overwritten:",
+                  paste(sames, collapse = ", ")))
+
 
   qunits = as.character(unique(rawData[["flow.units"]]))
   cunits = as.character(unique(rawData[["conc.units"]]))

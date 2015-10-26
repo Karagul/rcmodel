@@ -66,7 +66,7 @@ rcgam <- function(formula, data, timeout = 1, ...) {
 #' depending on optional arguments passed. See help("predict.gam", package = "mgcv") for more info
 #' The difference is that here the returned value will always be a list, possibly of length 1.
 #' @export
-predict.rcgam <- function(object, smear = TRUE, retrans = TRUE, restrict = FALSE, ...) {
+predict.rcgam <- function(object, smear = TRUE, retransform = TRUE, restrict = FALSE, ...) {
   arglist = list(...)
   if("newdata" %in% names(arglist) && !is(arglist$newdata, "rcData"))
     arglist$newdata = makePredData(arglist$newdata, object = object)
@@ -83,7 +83,7 @@ predict.rcgam <- function(object, smear = TRUE, retrans = TRUE, restrict = FALSE
     out$fit[out$fit > cmax] <- cmax
     out$fit[out$fit < cmin] <- cmin
   }
-  if (retrans){
+  if (retransform){
     out$fit = object$transform$cinvert(out$fit)
     if (smear)
       out$fit = out$fit * object$smearCoef
