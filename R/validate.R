@@ -69,10 +69,9 @@ splitSampleTest <- function(object, condition,
     out <- ymeas - ypred
   }
 
-  tss = sum((curobj$y - mean(curobj$y))^2)
   gof = list(NSE = curobj$NSE,
-             R2 = 1 - sum(residuals(curobj, type = "response")^2) / tss,
-             R2_gcv = 1 - curobj$gcv.ubre * nrow(train) / tss)
+             R2 <- markstats::R2(curobj),
+             Q2 <- markstats::Q2(curobj))
 
   if (incl.data)
     out <- list(resid = out, data = test, scale = setNames(denom, scale), gof = gof)

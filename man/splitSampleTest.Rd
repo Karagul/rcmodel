@@ -5,7 +5,7 @@
 \title{Conduct a differential split sample test on a regression model}
 \usage{
 splitSampleTest(object, condition, what = c("conc_mg.l", "load_kg.d"),
-  retransform = TRUE, scale = c("none", "gcv", "cv"), kfolds = 30,
+  retransform = TRUE, scale = c("none", "gcv", "cv"), kfolds = 10,
   incl.data = FALSE, ...)
 }
 \arguments{
@@ -29,7 +29,7 @@ for different datasets) Defaults to "none".}
 }
 \description{
 Returns prediction errors from a model calibrated for condition == FALSE and validated
-for conditiona == TRUE. Based on differential split sample test described in
+for condition == TRUE. Based on differential split sample test described in
 Klemes (1986)
 }
 

@@ -4,7 +4,7 @@
 \alias{predict.rcgam}
 \title{Predict method for rcgam model objects}
 \usage{
-\method{predict}{rcgam}(object, smear = TRUE, retrans = TRUE,
+\method{predict}{rcgam}(object, smear = TRUE, retransform = TRUE,
   restrict = FALSE, ...)
 }
 \arguments{
@@ -12,11 +12,11 @@
 
 \item{smear}{Unbias the predictions using the smearing coefficient? Defaults to TRUE}
 
-\item{retrans}{Retransform the predictions into the original units? Defaults to TRUE}
-
 \item{restrict}{Restrict the range of predictions to those observed in the calibration data? Defaults to FALSE.}
 
 \item{...}{Other arguments passed to mgcv::predict.gam}
+
+\item{retrans}{Retransform the predictions into the original units? Defaults to TRUE}
 }
 \value{
 a list with element "fit" and potentially others,
