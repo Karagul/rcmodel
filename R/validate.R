@@ -70,8 +70,8 @@ splitSampleTest <- function(object, condition,
   }
 
   gof = list(NSE = curobj$NSE,
-             R2 <- markstats::R2(curobj),
-             Q2 <- markstats::Q2(curobj))
+             R2  = markstats::R2(curobj),
+             Q2  = markstats::Q2(curobj))
 
   if (incl.data)
     out <- list(resid = out, data = test, scale = setNames(denom, scale), gof = gof)
