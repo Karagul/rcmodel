@@ -17,4 +17,3 @@ Imports: assertthat,
     mgcv,
     R.utils
 Suggests: testthat
-Depends: dplyr

@@ -16,7 +16,7 @@ test_that("makeModelData and makeRawData are inversions of each other", {
   expect_equal(todf(moddat1), todf(makeModelData(rawdat1))[names(moddat1)])
 
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), moddat1)
-  moddat1.1 = setNames(as.data.frame(moddat1), names1)
+  moddat1.1 = as.data.frame(moddat1)
   rawdat1.1 = makeRawData(todf(moddat1.1), rcmodel = mod2)
   expect_equal(todf(moddat1.1), todf(makeModelData(rawdat1.1))[names(moddat1.1)])
 
@@ -42,14 +42,14 @@ test_that("data manipulation works using an rcgam object", {
   expect_is(makePredData(Phosphorus, object = mod2), "rcData")
 })
 
-
+# Should possibly move the following to markstats package
 test_that("getData works for rcgams", {
   data(Phosphorus)
   pdat = makeModelData(Phosphorus)
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
 
-  expect_is(getData(mod2, type = "rcData"), "rcData")
-  expect_is(getData(mod2, type = "raw"), "data.frame")
+  expect_is(markstats::getData(mod2, type = "rcData"), "rcData")
+  expect_is(markstats::getData(mod2, type = "raw"), "data.frame")
 })
 
 
@@ -58,12 +58,14 @@ test_that("rcdata object is recoverable from rcgam object", {
   pdat = makeModelData(Phosphorus)
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
 
-  expect_is(getData(mod2, type = "rcData"), "rcData")
-  expect_is(getData(mod2, type = "raw"), "data.frame")
+  expect_is(markstats::getData(mod2, type = "rcData"), "rcData")
+  expect_is(markstats::getData(mod2, type = "raw"), "data.frame")
 
   oc <- function(df) df[order(names(df))]
-  expect_equal(oc(makeModelData(getData(mod2, type = "raw"))), oc(getData(mod2, type = "rcData")))
-  expect_equal(oc(makeRawData(getData(mod2, type = "rcData"))), oc(getData(mod2, type = "raw")))
+  expect_equal(oc(makeModelData(markstats::getData(mod2, type = "raw"))),
+               oc(markstats::getData(mod2, type = "rcData")))
+  expect_equal(oc(makeRawData(markstats::getData(mod2, type = "rcData"))),
+               oc(markstats::getData(mod2, type = "raw")))
 })
 
 

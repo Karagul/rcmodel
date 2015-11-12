@@ -20,7 +20,7 @@ makeModelData <- function(rawData, ...) {
 }
 
 #' @export
-
+#' @importFrom dplyr "%>%" mutate_ select_
 makeModelData.data.frame <- function(rawData, model = NULL,
                                      flowTransform = "log",
                                      concTransform = "log",
@@ -130,6 +130,7 @@ makeModelData.wqData <- function(rawData) {
 #' data is an rcData object or `rcmodel` is supplied.
 #' @param units a list containing units information, not necessary if
 #' data is an rcData object or if `rcmodel` is supplied.
+#' @importFrom dplyr "%>%" mutate_ select_
 #' @export
 
 makeRawData <- function(data, ...) {
@@ -208,6 +209,7 @@ transf.Date <- function(object, center, scale = 1) {
 #' data.frame, but rcData objects may be added in the future.
 #' @param model A model from which to extract transformation
 #' information.
+#' @importFrom dplyr "%>%" mutate_ select_
 #' @export
 
 makePredData <- function(rawData, object) {

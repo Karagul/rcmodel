@@ -17,6 +17,7 @@
 #' @param kfolds For scale == "cv" only. How many folds to use for crossvalidation?
 #' @param incl.data Return data and scale along with residuals? If so, a list is returned.
 #' @param ... passed to predict.rcgam
+#' @importFrom markstats getData
 #' @export
 
 splitSampleTest <- function(object, condition,

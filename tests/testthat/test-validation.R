@@ -35,7 +35,7 @@ test_that("scaling of validation residuals works", {
   data("rc_synth")
   mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
   qtl <- 0.9
-  maxlq <- quantile(scale(log(getData(mod1)$flow)), qtl)
+  maxlq <- quantile(scale(log(markstats::getData(mod1)$flow)), qtl)
 
   expect_error(splitSampleTest(mod1, scale(log(flow)) > maxlq, scale = "gcv",
                                retransform = TRUE))
