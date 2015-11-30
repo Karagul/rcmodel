@@ -5,15 +5,18 @@ Version: 0.0.0.9000
 Date: 2015-03-28
 Authors@R: person("Mark", "Hagemann", email = "mark.hagemann@gmail.com", role = c("aut", "cre"))
 Maintainer: Mark Hagemann <mark.hagemann@gmail.com>
-Description: Contains functions for the log-concentration (or load) vs log-flow
-  family of regression models commonly referred to as "rating curves" in hydrology.
-  Traditional linear regression models as well as more flexible general additive
-  models a la Wang et al., 2011 are implemented. Automatic model selection similar
-  to the LOADEST USGS FORTRAN program is also implemented.
+Description: Contains functions for the log-concentration (or load) vs log-
+    flow family of regression models commonly referred to as "rating curves"
+    in hydrology. Traditional linear regression models as well as more flexible
+    general additive models a la Wang et al., 2011 are implemented. Automatic model
+    selection similar to the LOADEST USGS FORTRAN program is also implemented.
 License: GPL-3
 LazyData: TRUE
-Imports: assertthat,
+Imports:
+    assertthat,
     dplyr,
     mgcv,
     R.utils
-Suggests: testthat
+Suggests:
+    testthat
+RoxygenNote: 5.0.1

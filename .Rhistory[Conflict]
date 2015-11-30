@@ -1,0 +1,512 @@
+search()
+devtools::document()
+devtools::document()
+devtools::load_all(".")
+devtools::document()
+data(Phosphorus)
+todf <- function(obj) {
+nms = names(obj)
+attributes(obj) = NULL
+setNames(data.frame(obj), nms)
+}
+moddat1 = makeModelData(Phosphorus)
+rawdat1 = makeRawData(moddat1)
+expect_equal(todf(moddat1), todf(makeModelData(rawdat1))[names(moddat1)])
+library(testthat)
+expect_equal(todf(moddat1), todf(makeModelData(rawdat1))[names(moddat1)])
+mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), moddat1)
+moddat1.1 = as.data.frame(moddat1)
+rawdat1.1 = makeRawData(todf(moddat1.1), rcmodel = mod2)
+expect_equal(todf(moddat1.1), todf(makeModelData(rawdat1.1))[names(moddat1.1)])
+getData
+# Should possibly move the following to markstats package
+test_that("getData works for rcgams", {
+data(Phosphorus)
+pdat = makeModelData(Phosphorus)
+mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
+expect_is(markstats::getData(mod2, type = "rcData"), "rcData")
+expect_is(markstats::getData(mod2, type = "raw"), "data.frame")
+})
+devtools::document()
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+qtl <- 0.9
+maxlq <- quantile(scale(log(markstats::getData(mod1)$flow)), qtl)
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+qtl <- 0.9
+maxlq <- quantile(scale(log(markstats::getData(mod1)$flow)), qtl)
+expect_error(splitSampleTest(mod1, scale(log(flow)) > maxlq, scale = "gcv",
+retransform = TRUE))
+# conc, log space
+expect_less_than(mean(abs(splitSampleTest(mod1, scale(log(flow)) > maxlq,
+scale = "gcv",
+retransform = FALSE))),
+10)
+expect_more_than(mean(abs(splitSampleTest(mod1, scale(log(flow)) > maxlq,
+devtools::load_all(".")
+expect_less_than(mean(abs(splitSampleTest(mod1, scale(log(flow)) > maxlq,
+scale = "gcv",
+retransform = FALSE))),
+10)
+expect_less_than(mean(abs(splitSampleTest(mod1, scale(log(flow)) > maxlq,
+scale = "gcv",
+retransform = FALSE))),
+10)
+getData
+devtools::load_all(".")
+getData
+search()
+devtools::load_all(".")
+devtools::load_all(".")
+devtools::document()
+devtools::load_all(".")
+expect_more_than(mean(abs(splitSampleTest(mod1, scale(log(flow)) > maxlq,
+scale = "gcv",
+retransform = FALSE))),
+0.5)
+devtools::install_github("markwh/markstats")
+devtools::load_all(".")
+library(testthat)
+test_that("differential split-sample tests work as intended", {
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+conc1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9))
+load1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+what = "load")
+conc2 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE)
+expect_error(splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE))
+expect_is(conc1, "numeric")
+expect_is(conc2, "numeric")
+expect_is(load1, "numeric")
+expect_equal(length(splitSampleTest(mod1, flow > max(flow))), 0)
+expect_is(splitSampleTest(mod1, flow > max(flow), incl.data = TRUE),
+"list")
+expect_less_than(nrow(splitSampleTest(mod1, q > 1, incl.data = TRUE)$data),
+nrow(splitSampleTest(mod1, q > 0.5, incl.data = TRUE)$data))
+testErrs <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9))
+expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - qtl)
+expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - qtl)
+})
+test_that("differential split-sample tests work as intended", {
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+conc1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9))
+load1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+what = "load")
+conc2 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE)
+expect_error(splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE))
+expect_is(conc1, "numeric")
+expect_is(conc2, "numeric")
+expect_is(load1, "numeric")
+expect_equal(length(splitSampleTest(mod1, flow > max(flow))), 0)
+expect_is(splitSampleTest(mod1, flow > max(flow), incl.data = TRUE),
+"list")
+expect_less_than(nrow(splitSampleTest(mod1, q > 1, incl.data = TRUE)$data),
+nrow(splitSampleTest(mod1, q > 0.5, incl.data = TRUE)$data))
+testErrs <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9))
+expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - 0.9)
+expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - 0.9)
+})
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+conc1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9))
+load1 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+what = "load")
+conc2 <- splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE)
+expect_error(splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE))
+splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE)
+expect_error(splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE))
+foo = splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE)
+str(foo, 1)
+?splitSampleTest
+foo = splitSampleTest(mod1,
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE, incl.data = TRUE)
+str(foo, 1)
+mod1$data
+expect_error(splitSampleTest(mod1, what = "load",
+scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+retransform = FALSE))
+ls("package:markstats")
+library(markstats)
+ls("package:markstats")
+devtools::document()
+devtools::load_all(".")
+help("lm")
+devtools::load_all(".")
+?sharm
+data(goodlm)
+library(markstats)
+data(goodlm)
+goodlm$call
+data(Phosphorus)
+devtools::load_all(".")
+data(Phosphorus)
+pdat = makeModelData(Phosphorus)
+mod2 = rclm(c ~ q + sharm(Date) + time, pdat)
+traceback()
+sharm(Sys.Date())
+devtools::load_all(".")
+sharm(Sys.Date())
+?runif
+sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date2
+date2 <- date1 - 366L / 2L
+date2
+library(testthat)
+sharm(date1) - sharm(date2)
+sharm(date1)
+sharm(date2)
+sharmsin <- function(date) sharm(date)[1, 1]
+sharmsin(Sys.Date())
+plot(sapply(Sys.Date() - 0:365), sharmsin)
+plot(sapply(Sys.Date() - 0:365), sharmsin)
+plot(sapply(Sys.Date() - 0:365, sharmsin))
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date1
+date2
+sharm(date1)
+sharm(date2)
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.01)
+})
+date1
+date2
+sharm(date1)
+sharm(date2)
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+})
+expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.02)
+expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date3, degree = 2))), 0.02)
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date3, degree = 2))), 0.02)
+sharm(date1, degree = 2)
+sharm(date3, degree = 2)
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.02)
+expect_less_than(max(abs(sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4])), 0.02)
+})
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4])
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4]
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4]
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4]
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4]
+sharm(date1, degree = 2)[1, 3:4] -
+sharm(date3, degree = 2)[1, 3:4]
+test_that("sharm behaves correctly", {
+date1 <- Sys.Date() - sample(0L:10000L, 1)
+date2 <- date1 - 365L
+date3 <- date1 - 366L / 2L
+expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.02)
+expect_less_than(max(abs(sharm(date1, degree = 2)[1, c(2, 4)] -
+sharm(date3, degree = 2)[1, c(2, 4)])), 0.02)
+})
+data(Phosphorus)
+pdat = makeModelData(Phosphorus)
+mod2 = rclm(c ~ q + sharm(Date) + time, pdat)
+traceback()
+devtools::load_all(".")
+mod2 = rclm(c ~ q + sharm(Date) + time, pdat)
+plot(mod2)
+mod2
+summary(mod2)
+hinewdat = makeRawData(data.frame(q = 10, c = 0, doy = 10,
+)
+)
+mean(Phosphorus$Date)
+hinewdat = makeRawData(data.frame(q = 10, c = 0, Date = mean(Phosphorus$Date),
+time = 0, is.bdl = FALSE), rcmodel = mod2)
+lonewdat = makeRawData(data.frame(q = -10, c = 0, Date = mean(Phosphorus$Date),
+time = 0, is.bdl = FALSE), rcmodel = mod2)
+predict(mod2, restrict = TRUE, smear = FALSE,
+retrans = FALSE, newdata = hinewdat)
+traceback()
+predict(mod2, restrict = TRUE, smear = FALSE,
+retrans = FALSE, newdata = hinewdat)
+makePredData <- function(rawData, object) {
+neededCols <- c("Date", "flow", "flow.units")
+diffs = setdiff(neededCols, names(rawData))
+if(length(diffs) > 0) stop(paste("rawData is missing the following needed column(s):",
+paste(diffs, collapse = ", ")))
+qunits = as.character(unique(rawData[["flow.units"]]))
+if(length(qunits) != 1) stop(paste("Data must all have the same flow units:", qunits))
+rawData[["Date"]] = as.Date(rawData[["Date"]])
+assertthat::assert_that(is(rawData$flow, "numeric"))
+stopifnot(is(object, "rcgam") | is(object, "rclm"))
+assertthat::assert_that(all(object$units["qunits"] == rawData$flow.units))
+tf = object$transform
+modelData <- rawData %>%
+mutate_(time = ~ tf$ttrans(Date),
+doy = ~ as.numeric(format(Date, "%j")),
+q = ~tf$qtrans(rawData$flow)) %>%
+select_("-flow", "-flow.units")
+stats = object$stats
+translist = object$transform
+units = object$units
+out <- structure(modelData, class = c("rcData", "data.frame"),
+stats = stats,
+transform = translist,
+units = units)
+out
+}
+rm(makePredData)
+devtools::load_all(".")
+makePredData(Phosphorus, object = mod2)
+predict(mod2, restrict = TRUE, smear = FALSE,
+retrans = FALSE, newdata = hinewdat)
+expect_equal(as.numeric(predict(mod2, restrict = TRUE, smear = FALSE,
+retrans = FALSE, newdata = hinewdat)$fit),
+max(mod2$model$c))
+lonewdat = makeRawData(data.frame(q = -10, c = 0, Date = mean(Phosphorus$Date),
+time = 0, is.bdl = FALSE), rcmodel = mod2)
+expect_equal(as.numeric(predict(mod2, restrict = TRUE, smear = FALSE,
+retrans = FALSE, newdata = lonewdat)$fit),
+min(mod2$model$c))
+mod2$data
+class(mod2)
+is(mod2, "lm")
+devtools::load_all(".")
+devtools::load_all(".")
+length(predict(mod2, se.fit = TRUE))
+data(Phosphorus)
+pdat = makeModelData(Phosphorus)
+mod2 = rclm(c ~ q + sharm(Date) + time, pdat)
+expect_is(predict(mod2), "list")
+str(predict(mod2))
+expect_is(predict(mod2, newdata = Phosphorus[1:10, ]), "list")
+expect_is(predict(mod2, se.fit = TRUE), "list")
+foo = predict(mod2, se.fit = TRUE)
+str(foo)
+?predict.gam
+?predict.lm
+devtools::load_all(".")
+data(Phosphorus)
+pdat = makeModelData(Phosphorus)
+mod2 = rclm(c ~ q + sharm(Date) + time, pdat)
+expect_equal(predict(mod2, smear = FALSE, retrans = FALSE)$fit,
+predict(mod2))
+predict(mod2, smear = FALSE, retrans = FALSE)
+predict(mod2, smear = FALSE, retrans = FALSE)$fit
+stats::predict.lm(mod2)
+expect_equal(predict(mod2, smear = FALSE, retrans = FALSE)$fit,
+stats::predict.lm(mod2))
+data("rc_synth")
+mod1 = rclm(c ~ s(q, k = 5) + sharm(Date) + time, rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+data("rc_synth")
+data("rc_synth")
+mod1 = rclm(c ~ q + sharm(Date) + time, rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+class(mod1)
+condlSample
+class(mod1)[1]
+class(mod1)[1] = "rcgam"
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+devtools::load_all(".")
+data("rc_synth")
+mod1 = rclm(c ~ q + sharm(Date) + time, rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+data("rc_synth")
+mod1 = rclm(c ~ q + sharm(Date) + time, rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+q90 <- markstats::condlSample(mod1, quantile = 0.9)
+expect_less_than(mean(q10), mean(rc_synth$conc))
+library(testthat)
+expect_less_than(mean(q10), mean(rc_synth$conc))
+expect_more_than(mean(q90), mean(rc_synth$conc))
+expect_less_than(sum(q10 > rc_synth$conc), 30)
+expect_more_than(sum(q10 > rc_synth$conc), 19)
+expect_less_than(sum(q90 < rc_synth$conc), 30)
+expect_more_than(sum(q90 < rc_synth$conc), 19)
+rc_synth
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+test_that("conditional samples are correct", {
+data("rc_synth")
+mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+q90 <- markstats::condlSample(mod1, quantile = 0.9)
+expect_less_than(mean(q10), mean(rc_synth$conc))
+expect_more_than(mean(q90), mean(rc_synth$conc))
+expect_less_than(sum(q10 > rc_synth$conc), 30)
+expect_more_than(sum(q10 > rc_synth$conc), 19)
+expect_less_than(sum(q90 < rc_synth$conc), 30)
+expect_more_than(sum(q90 < rc_synth$conc), 19)
+})
+mod1 = rclm(c ~ q + sharm(Date) + time, rc_synth)
+q10 <- markstats::condlSample(mod1, quantile = 0.1)
+traceback()
+getData(mod2)

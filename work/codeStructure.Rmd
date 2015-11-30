@@ -1,0 +1,21 @@
+---
+title: "codeStructure"
+author: "Mark Hagemann"
+date: "November 20, 2015"
+output: html_document
+---
+
+Issue: makePredData has to return different columns depending on the type of model. 
+
+- makeModelData and makePredData should always return the requisite columns for the model to be calibrated / make predictions.
+- makeModelData doesn't us a model, and makes transformations of expected columns:
+    - Date --> doy, time
+    - flow --> q
+    - conc --> c
+    - other columns preserved.
+- makePredData uses a model argument, should always return the columns needed to make predictions
+    - Date (rclm)
+    - doy, time (rcgam)
+    - q
+    - c
+    - other columns as needed in model

@@ -45,3 +45,12 @@ sharm <- function(t, degree = 1) {
 
   Z
 }
+
+#' obtain "julian seconds" (number of seconds since start of the year)
+#` @export
+jsec = function(t) {
+  vapply(t,
+         function(x) eval(parse(text = format(x, "(%j - 1) * 3600 * 24 + %H * 3600 + %M * 60 + %S"))),
+         numeric(1)
+  )
+}

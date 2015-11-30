@@ -52,7 +52,7 @@ makeModelData.data.frame <- function(rawData, model = NULL,
                             is(is.bdl, "logical")))
 
   if(!is.null(model)) {
-    stopifnot(is(model, "rcgam"))
+    stopifnot(is(model, "rcgam") | is(model, "rclm"))
     assertthat::assert_that(all(model$units["qunits"] == rawData$flow.units),
                 all(model$units["cunits"] == rawData$conc.units))
     tf = model$transform
@@ -171,6 +171,32 @@ makeRawData.data.frame <- function(data, rcmodel = NULL,
 }
 
 
+#' Get data from rcgam or rclm objects
+#'
+#' simple extraction of data, returning useful errors if impossible. Useful as a
+#' method for the generic `getData` from `nlme` package
+#'
+#' @param object an object of class `rcgam`
+#' @param type What kind of data to return--raw or transformed (rcData object)
+#' @importFrom markstats getData
+#' @export
+
+getData <- function(object, type = c("raw", "rcData")) {
+  stopifnot(is(object, "rclm") | is(object, "rcgam"))
+  type = match.arg(type)
+
+  out <- if (is.null(object$data)) {
+    warning("model structure does not include data. Attempting to get from environment")
+    eval(object$call$data, envir = attr(object$terms, ".Environment"))
+  }
+  else
+    object$data
+
+  if(type == "raw")
+    out <- rcmodel::makeRawData(out)
+  out
+}
+
 #
 #' Transform data in a systematic way
 #'
@@ -224,7 +250,7 @@ makePredData <- function(rawData, object) {
   rawData[["Date"]] = as.Date(rawData[["Date"]])
   assertthat::assert_that(is(rawData$flow, "numeric"))
 
-  stopifnot(is(object, "rcgam"))
+  stopifnot(is(object, "rcgam") | is(object, "rclm"))
   assertthat::assert_that(all(object$units["qunits"] == rawData$flow.units))
   tf = object$transform
   modelData <- rawData %>%

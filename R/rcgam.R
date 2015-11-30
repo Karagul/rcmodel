@@ -24,11 +24,9 @@ rcgam <- function(formula, data, timeout = 1, ...) {
     data = makeModelData(data)
   formula = as.formula(formula)
 
-  #   browser()
   out = R.utils::withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = timeout,
                              onTimeout = "error")
   out$call = cl
-
 
   al = attributes(data)
   conc = al$transform$cinvert(data$c)

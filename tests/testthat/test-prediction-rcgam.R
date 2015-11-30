@@ -1,4 +1,4 @@
-context("rcmodel prediction")
+context("rcgam prediction")
 
 test_that("predict.rcgam returns expected values and exceptions", {
   data(Phosphorus)
@@ -59,7 +59,6 @@ test_that("conditional samples are correct", {
   expect_less_than(sum(q90 < rc_synth$conc), 30)
   expect_more_than(sum(q90 < rc_synth$conc), 19)
 
-  rc_synth
 })
 
 test_that("restricting predictions works", {

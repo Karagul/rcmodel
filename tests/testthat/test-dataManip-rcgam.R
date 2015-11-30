@@ -1,6 +1,6 @@
 # test for good behavior of data manipulation functions
 
-context("data manipulation")
+context("data manipulation - rcgam")
 
 test_that("makeModelData and makeRawData are inversions of each other", {
   data(Phosphorus)
@@ -48,8 +48,8 @@ test_that("getData works for rcgams", {
   pdat = makeModelData(Phosphorus)
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
 
-  expect_is(markstats::getData(mod2, type = "rcData"), "rcData")
-  expect_is(markstats::getData(mod2, type = "raw"), "data.frame")
+  expect_is(getData(mod2, type = "rcData"), "rcData")
+  expect_is(getData(mod2, type = "raw"), "data.frame")
 })
 
 
@@ -58,14 +58,14 @@ test_that("rcdata object is recoverable from rcgam object", {
   pdat = makeModelData(Phosphorus)
   mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
 
-  expect_is(markstats::getData(mod2, type = "rcData"), "rcData")
-  expect_is(markstats::getData(mod2, type = "raw"), "data.frame")
+  expect_is(getData(mod2, type = "rcData"), "rcData")
+  expect_is(getData(mod2, type = "raw"), "data.frame")
 
   oc <- function(df) df[order(names(df))]
-  expect_equal(oc(makeModelData(markstats::getData(mod2, type = "raw"))),
-               oc(markstats::getData(mod2, type = "rcData")))
-  expect_equal(oc(makeRawData(markstats::getData(mod2, type = "rcData"))),
-               oc(markstats::getData(mod2, type = "raw")))
+  expect_equal(oc(makeModelData(getData(mod2, type = "raw"))),
+               oc(getData(mod2, type = "rcData")))
+  expect_equal(oc(makeRawData(getData(mod2, type = "rcData"))),
+               oc(getData(mod2, type = "raw")))
 })
 
 
@@ -115,4 +115,15 @@ test_that("custom arguments to makeModelData behave as intended", {
   expect_more_than(abs(mean(dat2$q)), abs(mean(dat1$q)))
   expect_more_than(abs(sd(dat2$q) - 1), abs(sd(dat1$q) - 1))
 
+})
+
+test_that("sharm behaves correctly", {
+  date1 <- Sys.Date() - sample(0L:10000L, 1)
+  date2 <- date1 - 365L
+  date3 <- date1 - 366L / 2L
+
+  expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
+  expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.04)
+  expect_less_than(max(abs(sharm(date1, degree = 2)[1, c(2, 4)] -
+                             sharm(date3, degree = 2)[1, c(2, 4)])), 0.04)
 })
