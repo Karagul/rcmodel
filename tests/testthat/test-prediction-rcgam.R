@@ -79,3 +79,11 @@ test_that("restricting predictions works", {
                                   retrans = FALSE, newdata = lonewdat)$fit),
                min(mod2$model$c))
 })
+
+test_that("prediction of terms works", {
+  data(Phosphorus)
+  pdat = makeModelData(Phosphorus)
+  mod2 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
+  expect_warning(predict(mod2, type = "terms"))
+  expect_is(predict(mod2, smear = FALSE, retransform = FALSE, restrict = FALSE, type = "terms"), "matrix")
+})

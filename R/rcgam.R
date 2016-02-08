@@ -56,6 +56,8 @@ rcgam <- function(formula, data, timeout = 1, ...) {
 #' @param object an object of type rcgam, with which to make predictions
 #' @param smear Unbias the predictions using the smearing coefficient? Defaults to TRUE
 #' @param retrans Retransform the predictions into the original units? Defaults to TRUE
+#' @param type What to predict. If not "response" (the default), then the following are coerced to be FALSE:
+#' retrans, restrict, smear. See ?predict.gam.
 #' @param restrict Restrict the range of predictions to those observed in the calibration data? Defaults to FALSE.
 #' @param ... Other arguments passed to mgcv::predict.gam
 #'
@@ -64,16 +66,23 @@ rcgam <- function(formula, data, timeout = 1, ...) {
 #' depending on optional arguments passed. See help("predict.gam", package = "mgcv") for more info
 #' The difference is that here the returned value will always be a list, possibly of length 1.
 #' @export
-predict.rcgam <- function(object, smear = TRUE, retransform = TRUE, restrict = FALSE, ...) {
+predict.rcgam <- function(object, smear = TRUE, retransform = TRUE,
+                          type = "response", restrict = FALSE, ...) {
   arglist = list(...)
   if("newdata" %in% names(arglist) && !is(arglist$newdata, "rcData"))
     arglist$newdata = makePredData(arglist$newdata, object = object)
 
   predfun <- get("predict.gam", asNamespace("mgcv"))
-  out <- do.call("predfun", args = c(list(object = object, type = "response"), arglist))
+  out <- do.call("predfun", args = c(list(object = object, type = type), arglist))
+
+  if(type != "response") {
+    if(smear || retransform || restrict)
+      warning("The following arguments are not allowed to be TRUE when type != 'response': smear, retransform, restrict")
+    return(out)
+  }
+
 
   if (!is(out, "list"))
-    # browser()
     out = list(fit = out)
   if (restrict) {
     cmax <- max(object$model$c)

@@ -5,12 +5,15 @@
 \title{Predict method for rcgam model objects}
 \usage{
 \method{predict}{rcgam}(object, smear = TRUE, retransform = TRUE,
-  restrict = FALSE, ...)
+  type = "response", restrict = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of type rcgam, with which to make predictions}
 
 \item{smear}{Unbias the predictions using the smearing coefficient? Defaults to TRUE}
+
+\item{type}{What to predict. If not "response" (the default), then the following are coerced to be FALSE:
+retrans, restrict, smear. See ?predict.gam.}
 
 \item{restrict}{Restrict the range of predictions to those observed in the calibration data? Defaults to FALSE.}
 

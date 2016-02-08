@@ -12,3 +12,9 @@ test_that("rcgam calibration works for data frames and rcData", {
                    nocall(rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), Phosphorus)))
 })
 
+test_that("ggTermPlot function works with model objects", {
+  data(Phosphorus)
+  pdat = makeModelData(Phosphorus)
+  mod1 = rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), pdat)
+  expect_is()
+})
