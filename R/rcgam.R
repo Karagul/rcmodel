@@ -45,7 +45,8 @@ rcgam <- function(formula, data, timeout = 1, ...) {
                  smearCoef = scoef,
                  transform = al$transform,
                  units = al$units,
-                 fitted.retrans, resid.retrans = resid.retrans, NSE = NSE)
+                 fitted.retrans = fitted.retrans,
+                 resid.retrans = resid.retrans, NSE = NSE)
 
   out = c(out, newbits)
   structure(out, class = c("rcgam", "gam", "glm", "lm"))
@@ -99,3 +100,16 @@ predict.rcgam <- function(object, smear = TRUE, retransform = TRUE,
   out
 }
 
+#' Convert an rcgam to a gam
+#' Useful for applying gam-specific methods that may not work with e.g. predict.rcgam
+#' @export
+as.gam <- function(object) {
+  stopifnot(is(object, "rcgam"))
+
+  toRemove <- c("data", "stats", "yname", "smearCoef", "transform", "units",
+                "fitted.retrans", "resid.retrans", "NSE")
+  out <- within.list(object, rm(list = toRemove))
+  nulls <- vapply(out, is.null, logical(1))
+  out <- structure(out[!nulls], class = c("gam", "glm", "lm"))
+  out
+}
