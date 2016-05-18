@@ -26,12 +26,12 @@ test_that("differential split-sample tests work as intended", {
   expect_equal(length(splitSampleTest(mod1, flow > max(flow))), 0)
   expect_is(splitSampleTest(mod1, flow > max(flow), incl.data = TRUE),
             "list")
-  expect_less_than(nrow(splitSampleTest(mod1, q > 1, incl.data = TRUE)$data),
+  expect_lt(nrow(splitSampleTest(mod1, q > 1, incl.data = TRUE)$data),
                    nrow(splitSampleTest(mod1, q > 0.5, incl.data = TRUE)$data))
   testErrs <- splitSampleTest(mod1,
                 scale(log(flow)) > quantile(scale(log(flow)), 0.9))
-  expect_more_than((length(testErrs) + 1) / nrow(rc_synth), 1 - 0.9)
-  expect_less_than((length(testErrs) - 1) / nrow(rc_synth), 1 - 0.9)
+  expect_gt((length(testErrs) + 1) / nrow(rc_synth), 1 - 0.9)
+  expect_lt((length(testErrs) - 1) / nrow(rc_synth), 1 - 0.9)
 })
 
 
@@ -44,36 +44,36 @@ test_that("scaling of validation residuals works", {
                    retransform = TRUE))
 
   # conc, log space
-  expect_less_than(mean(abs(splitSampleTest(mod1,
-                scale(log(flow)) > quantile(scale(log(flow)), 0.9),
+  expect_lt(mean(abs(splitSampleTest(mod1,
+                scale(log(flow)) > quantile(scale(log(flow)), 0.9), # top 10th of flows
                 scale = "gcv",
                 retransform = FALSE))),
                    10)
-  expect_more_than(mean(abs(splitSampleTest(mod1,
+  expect_gt(mean(abs(splitSampleTest(mod1,
                 scale(log(flow)) > quantile(scale(log(flow)), 0.9),
                 scale = "gcv",
                 retransform = FALSE))),
                    0.5)
 
   # load
-  expect_less_than(mean(abs(splitSampleTest(mod1,
+  expect_lt(mean(abs(splitSampleTest(mod1,
             scale(log(flow)) > quantile(scale(log(flow)), 0.9),
             what = "load",
             scale = "cv"))),
                    10)
-  expect_more_than(mean(abs(splitSampleTest(mod1,
+  expect_gt(mean(abs(splitSampleTest(mod1,
             scale(log(flow)) > quantile(scale(log(flow)), 0.9),
             scale = "cv",
             what = "load"))),
                    0.5)
 
   # concentration, retransformed
-  expect_less_than(mean(abs(splitSampleTest(mod1,
+  expect_lt(mean(abs(splitSampleTest(mod1,
             scale(log(flow)) > quantile(scale(log(flow)), 0.9),
             scale = "cv",
             retransform = TRUE))),
                    10)
-  expect_more_than(mean(abs(splitSampleTest(mod1,
+  expect_gt(mean(abs(splitSampleTest(mod1,
             scale(log(flow)) > quantile(scale(log(flow)), 0.9),
             scale = "cv",
             retransform = TRUE))),
@@ -125,8 +125,8 @@ test_that("crossvalidation works for log-space estimates in rcgams", {
   expect_is(concloo, "numeric")
   expect_is(conc5f, "numeric")
 
-  expect_less_than(concloo, 1)
-  expect_less_than(conc5f, 1)
+  expect_lt(concloo, 1)
+  expect_lt(conc5f, 1)
   expect_equal(concloo, concloo_nosmear)
 
   expect_error(crossvalidate(mod2, what = "load", retransform = FALSE))

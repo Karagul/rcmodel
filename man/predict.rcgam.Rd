@@ -5,7 +5,8 @@
 \title{Predict method for rcgam model objects}
 \usage{
 \method{predict}{rcgam}(object, smear = TRUE, retransform = TRUE,
-  type = "response", restrict = FALSE, ...)
+  type = "response", restrict = FALSE, what = c("concentration", "load"),
+  ...)
 }
 \arguments{
 \item{object}{an object of type rcgam, with which to make predictions}

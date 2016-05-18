@@ -13,7 +13,7 @@
 #' @importFrom markstats condlSample
 #' @export
 condlSample.rcgam <- function(object, newdata, flowcol = "flow",
-                              flow.units = "CFS", quantile, ...) {
+                              flow.units = "ft3/s", quantile, ...) {
 
   if (!requireNamespace("rcmodel", quietly = TRUE)) {
     stop("rcmodel needed for this function to work. Please install it.",
@@ -56,7 +56,7 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
 #' @importFrom markstats condlSample
 #' @export
 condlSample.rclm <- function(object, newdata, flowcol = "flow",
-                             flow.units = "CFS", quantile, ...) {
+                             flow.units = "ft3/s", quantile, ...) {
 
   if (!requireNamespace("rcmodel", quietly = TRUE)) {
     stop("rcmodel needed for this function to work. Please install it.",

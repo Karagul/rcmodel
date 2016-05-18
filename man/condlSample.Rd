@@ -6,10 +6,10 @@
 \title{Predict method for rclm/ rcgam fits}
 \usage{
 \method{condlSample}{rcgam}(object, newdata, flowcol = "flow",
-  flow.units = "CFS", quantile, ...)
+  flow.units = "ft3/s", quantile, ...)
 
 \method{condlSample}{rclm}(object, newdata, flowcol = "flow",
-  flow.units = "CFS", quantile, ...)
+  flow.units = "ft3/s", quantile, ...)
 }
 \arguments{
 \item{object}{An rclm or rcgam object to use for predicting}

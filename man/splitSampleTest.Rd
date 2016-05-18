@@ -4,7 +4,7 @@
 \alias{splitSampleTest}
 \title{Conduct a differential split sample test on a regression model}
 \usage{
-splitSampleTest(object, condition, what = c("conc_mg.l", "load_kg.d"),
+splitSampleTest(object, condition, what = c("concentration", "load"),
   retransform = TRUE, scale = c("none", "gcv", "cv"), kfolds = 10,
   incl.data = FALSE, ...)
 }

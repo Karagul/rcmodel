@@ -32,11 +32,11 @@ test_that("conditional samples are correct for rcgams", {
   q10 <- condlSample(mod2, quantile = 0.1)
   q90 <- condlSample(mod2, quantile = 0.9)
 
-  expect_less_than(mean(q10), mean(Phosphorus$conc))
-  expect_more_than(mean(q90), mean(Phosphorus$conc))
+  expect_lt(mean(q10), mean(Phosphorus$conc))
+  expect_gt(mean(q90), mean(Phosphorus$conc))
 
-  expect_less_than(sum(q10 > Phosphorus$conc), n / 5)
-  expect_more_than(sum(q10 > Phosphorus$conc), n / 20)
-  expect_less_than(sum(q90 < Phosphorus$conc), n / 5)
-  expect_more_than(sum(q90 < Phosphorus$conc), n / 20)
+  expect_lt(sum(q10 > Phosphorus$conc), n / 5)
+  expect_gt(sum(q10 > Phosphorus$conc), n / 20)
+  expect_lt(sum(q90 < Phosphorus$conc), n / 5)
+  expect_gt(sum(q90 < Phosphorus$conc), n / 20)
 })

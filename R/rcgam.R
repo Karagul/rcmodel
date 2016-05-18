@@ -15,6 +15,8 @@
 #' @param data an object of class rcData, generated using `makeModelData`, or a data frame that makeModelData can use.
 #' @param timeout the amount of time in seconds to try mgcv::gam before stopping with a timeout error
 #' @param ... further arguments passed to `mgcv::gam`
+#' @importFrom mgcv gam
+#' @importFrom R.utils withTimeout
 #' @export
 
 
@@ -24,7 +26,7 @@ rcgam <- function(formula, data, timeout = 1, ...) {
     data = makeModelData(data)
   formula = as.formula(formula)
 
-  out = R.utils::withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = timeout,
+  out = withTimeout(mgcv::gam(formula = formula, data = data, ...), timeout = timeout,
                              onTimeout = "error")
   out$call = cl
 
@@ -68,17 +70,21 @@ rcgam <- function(formula, data, timeout = 1, ...) {
 #' The difference is that here the returned value will always be a list, possibly of length 1.
 #' @export
 predict.rcgam <- function(object, smear = TRUE, retransform = TRUE,
-                          type = "response", restrict = FALSE, ...) {
+                          type = "response", restrict = FALSE,
+                          what = c("concentration", "load"), ...) {
   arglist = list(...)
+  what = match.arg(what)
   if("newdata" %in% names(arglist) && !is(arglist$newdata, "rcData"))
     arglist$newdata = makePredData(arglist$newdata, object = object)
 
   predfun <- get("predict.gam", asNamespace("mgcv"))
   out <- do.call("predfun", args = c(list(object = object, type = type), arglist))
 
-  if(type != "response") {
-    if(smear || retransform || restrict)
+  if (type != "response") {
+    if (smear || retransform || restrict)
       warning("The following arguments are not allowed to be TRUE when type != 'response': smear, retransform, restrict")
+    if (what == "load")
+      warning("type != response -- coercing what to be 'concentration'.")
     return(out)
   }
 
@@ -95,7 +101,20 @@ predict.rcgam <- function(object, smear = TRUE, retransform = TRUE,
     out$fit = object$transform$cinvert(out$fit)
     if (smear)
       out$fit = out$fit * object$smearCoef
-  } else if(smear)
+
+    if (what == "load") {
+      newdata <- arglist[["newdata"]]
+      if (is.null(newdata))
+        stop("newdata argument must be supplied for load prediction.")
+      flow <- attr(newdata, "transform")$qinvert(newdata$q)
+      assert_that(is(flow, "numeric"))
+      outload <- loadTS(flow = flow, conc = out$fit, datetime = newdata$Date,
+                        load.units = "kg/day",
+                        flow.units = attr(newdata, "units")["qunits"],
+                        conc.units = attr(newdata, "units")["cunits"])
+      out$fit <- outload$load
+    }
+  } else if (smear)
     warning("smearing not applicable with non-retransformed predictions. Ignoring this argument.")
   out
 }

@@ -5,14 +5,14 @@
 \title{Crossvalidation for rcgam models}
 \usage{
 \method{crossvalidate}{rcgam}(object, kfolds = 0, statistic = c("R2", "mse",
-  "mae", "rmse"), what = c("conc_mg.l", "load_kg.d"), retransform = TRUE,
+  "mae", "rmse"), what = c("concentration", "load"), retransform = TRUE,
   ...)
 }
 \arguments{
 \item{what}{what quantity to predict/validate}
 
 \item{retransform}{compare predictions to observations in original uints?
-Must be TRUE if what == "load_kg.d"}
+Must be TRUE if what == "load"}
 
 \item{...}{Passed to predict.rcgam}
 }
