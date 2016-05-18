@@ -1,7 +1,5 @@
 
-#' Predict method for rclm/ rcgam fits
-#'
-#' Predict values using an rclm or rcgam model object
+#' Generate samples from a conditional distribution obtained from a model prediction
 #'
 #' @param object An rclm or rcgam object to use for predicting
 #' @param newdata a data.frame containing precictor variables to use for prediction
@@ -42,9 +40,7 @@ condlSample.rcgam <- function(object, newdata, flowcol = "flow",
 }
 
 
-#' Predict method for rclm fits
-#'
-#' Predict values using an rclm or rcgam model object
+#' Generate samples from a conditional distribution obtained from a model prediction
 #'
 #' @param object An rclm or rcgam object to use for predicting
 #' @param newdata a data.frame containing precictor variables to use for prediction

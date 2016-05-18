@@ -5,7 +5,8 @@
 \title{Check for detection limit behavior
 Adds is.bdl column
 Converts detection-limit units to MeasureValue units.
-Augments DetectionQuantitationLimitMeasure.MeasureValue, DetectionQuantitationLimitMeasure.MeasureUnitCode
+Augments DetectionQuantitationLimitMeasure.MeasureValue,
+DetectionQuantitationLimitMeasure.MeasureUnitCode.
 If detection limit not reported, assumes it is at largest non-bdl value for that dataset}
 \usage{
 wqp_checkBDL(wqpData)
@@ -17,7 +18,8 @@ wqp_checkBDL(wqpData)
 Check for detection limit behavior
 Adds is.bdl column
 Converts detection-limit units to MeasureValue units.
-Augments DetectionQuantitationLimitMeasure.MeasureValue, DetectionQuantitationLimitMeasure.MeasureUnitCode
+Augments DetectionQuantitationLimitMeasure.MeasureValue,
+DetectionQuantitationLimitMeasure.MeasureUnitCode.
 If detection limit not reported, assumes it is at largest non-bdl value for that dataset
 }
 

@@ -29,12 +29,20 @@ charNameLookup <- function(pattern, ignore.case = TRUE, ...) {
 }
 
 #' Get and show bounding box
+#' @param west Minimum longitude in decimal degrees
+#' @param south Minimum latitude in decimal degrees
+#' @param east Maximum longitude in decimal degrees
+#' @param north Maximum latitude in decimal degrees
+#' @param plot Generate a plot? Requires leaflet package.
 bbox <- function(west, south, east, north, plot = TRUE) {
   out <- paste(c(west, south, east, north), collapse = ",")
-  if(plot) {
-    l1 <- leaflet() %>%
-      addTiles() %>%
-      addRectangles(lng1 = west, lat1 = north,
+  if (plot) {
+    if (!requireNamespace("leaflet", quietly = TRUE)) {
+      stop("Package 'leaflet' is required to use plot. Please install it.")
+    }
+    l1 <- leaflet::leaflet() %>%
+      leaflet::addTiles() %>%
+      leaflet::addRectangles(lng1 = west, lat1 = north,
                     lng2 = east, lat2 = south)
     print(l1)
   }
@@ -50,7 +58,7 @@ getConcData <- function(bBox = NULL, charname = NULL, chartype = NULL,
                         statecode = NULL, ...) {
   if (!is.null(charname))
     charname = paste(charname, collapse = ";")
-  ret1 <- readWQPdata(bBox = bBox, siteType = "Stream",
+  ret1 <- dataRetrieval::readWQPdata(bBox = bBox, siteType = "Stream",
               characteristicName = URLencode(charname),
               sampleMedia = "Water", ...)
   ret2 <- wqp_checkClasses(ret1)
@@ -58,20 +66,30 @@ getConcData <- function(bBox = NULL, charname = NULL, chartype = NULL,
 }
 
 #' Simple flow retrieval from WQP sites
+#' @param siteids Character vector of site identifiers
+#' @param n Maximum number of sites per retrieval. Full retrieval will be done in batches of n.
 #' @export
-getFlowData <- function(siteids) {
+getFlowData <- function(siteids, n = 100) {
   flowchars <- c("Flow", "Flow rate, instantaneous",
                  "Flow runoff", "Flow, runoff", "Storm water flow",
                  "Stream flow, instantaneous", "Stream flow, mean. daily",
                  "Discharge, River/Stream")
+  # flowcodes <- c("00060", "00061", "00059", "50051")
+  flowchars <- paste(flowchars, collapse = ";")
 
-  f <- rep(1:(ceiling(length(siteids) / 100)), each = 100)[1:length(siteids)]
+  siteids <- vapply(siteids, URLencode, character(1))
+
+  f <- rep(1:(ceiling(length(siteids) / n)), each = n)[1:length(siteids)]
   siteIDsets <- split(siteids, f = f)
-  urls <- lapply(siteIDsets, constructWQPURL, parameterCd = flowchars, "", "", FALSE)
+  urls <- lapply(siteIDsets, dataRetrieval::constructWQPURL,
+                 parameterCd = flowchars, "", "", FALSE)
+  # urls2 <- lapply(siteIDsets, dataRetrieval::constructWQPURL,
+  #                 parameterCd = flowcodes, "", "", FALSE)
+  # urls <- c(urls1, urls2)
+  # return(urls)
+  retlist <- lapply(urls, dataRetrieval::importWQP)
 
-  retlist <- lapply(urls, importWQP)
-
-  out <- retlist # %>%
+  out <- retlist %>%
   lapply(wqp_checkClasses) %>%
     bind_rows()
 
@@ -126,25 +144,6 @@ m3s_cfs <- function(x) x * 35.3147
 #' @export
 cfs_m3s <- function(x) x / 35.3147
 
-#' @export
-convertToCFS <- function(flow, units) {
-  units <- tolower(units)
-  mults <- c("ft3/sec" = 1,
-             "gal/min" = 0.002229,
-             "cfs" = 1,
-             "ft3/s" = 1,
-             "g/sec" = 0.13368)
-  cfs <- flow * mults[units]
-  cfs
-}
-
-#' Convert to milligrams per liter
-#' @export
-convertToMg_L <- function(conc, units) {
-  mults <- c("ug/l" = 0.001,
-             "ppb" = 0.001,
-             "mg/l" = 1)
-}
 
 #' Wrapper for ud.convert that accepts vector inputs and multiple conversion candidates.
 #' @param x Numeric vector of values
@@ -154,15 +153,16 @@ convertToMg_L <- function(conc, units) {
 #' @details If length(to) > 0, units the first is tried first, followed by the second, etc.
 #'  If units in from are already contained in to, these units are not converted.
 #' @importFrom udunits2 ud.convert
+#' @importFrom assertthat assert_that
 #' @export
 
 convertUnits <- function(x, from, to) {
   if (length(from) == 1)
     from <- rep(from, length(x))
-  if (length(to) == 1)
-    to <- rep(to, length(x))
 
-  stopifnot(length(x) == length(from))
+  assert_that(length(x) == length(from),
+              is(from, "character"),
+              is(to, "character"))
 
   from <- validateUnits(from)
   to <- validateUnits(to)
@@ -198,8 +198,10 @@ convertUnits <- function(x, from, to) {
 #' e.g. "CFS", which *should* be ft3/s
 #' @export
 validateUnits <- function(unit) {
-  unit <- tolower(unit)
-  replacement <- c("cfs" = "ft3/s")
+  # unit <- tolower(unit)
+  replacement <- c("cfs" = "ft3/s", "CFS" = "ft3/s",
+                   "gpm" = "gal/min",
+                   "mgd" = "Mgal/day", "MGD" = "Mgal/day")
 
   matches <- match(unit, names(replacement))
   matchna <- is.na(matches)
@@ -270,7 +272,6 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL) {
       select(-mode)
     wd1$ResultMeasure.MeasureUnitCode
   }
-
   if (sum(stillbad & isZero) > 0)
     wqpData[stillbad & isZero, ]$ResultMeasure.MeasureUnitCode <-
     lookupUnitMode(wqpData[stillbad & isZero, ])
@@ -412,34 +413,46 @@ wqp_checkClasses <- function(wqpData) {
 #' Check for detection limit behavior
 #' Adds is.bdl column
 #' Converts detection-limit units to MeasureValue units.
-#' Augments DetectionQuantitationLimitMeasure.MeasureValue, DetectionQuantitationLimitMeasure.MeasureUnitCode
+#' Augments DetectionQuantitationLimitMeasure.MeasureValue,
+#' DetectionQuantitationLimitMeasure.MeasureUnitCode.
 #' If detection limit not reported, assumes it is at largest non-bdl value for that dataset
 #' @param wqpData data.frame returned by readWQPData
+#' @importFrom udunits2 ud.convert
 #' @export
 wqp_checkBDL <- function(wqpData) {
-
+  # browser()
   # Make detection limit and value have same units
   mismatches <- wqpData$ResultMeasure.MeasureUnitCode !=
     wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode &
     !is.na(wqpData$ResultMeasure.MeasureUnitCode) &
     !is.na(wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode)
+  if (sum(mismatches) > 0) {
+    wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode[mismatches] <-
+      wqpData$ResultMeasure.MeasureUnitCode[mismatches]
+    wqpData$DetectionQuantitationLimitMeasure.MeasureValue[mismatches] <-
+      with(wqpData[mismatches, ], mapply(ud.convert,
+                         x = DetectionQuantitationLimitMeasure.MeasureValue,
+                         u1 = DetectionQuantitationLimitMeasure.MeasureUnitCode,
+                         u2 = ResultMeasure.MeasureUnitCode))
+  }
 
-  wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode[mismatches] <-
-    wqpData$ResultMeasure.MeasureUnitCode[mismatches]
-  wqpData$DetectionQuantitationLimitMeasure.MeasureValue[mismatches] <-
-    with(wqpData[mismatches, ], mapply(ud.convert,
-           x = DetectionQuantitationLimitMeasure.MeasureValue,
-           u1 = DetectionQuantitationLimitMeasure.MeasureUnitCode,
-           u2 = ResultMeasure.MeasureUnitCode))
 
   nonDetectStrings <- c("Present Below Quantification Limit", "*Non-detect",
-                        "Not Detected", "Detected Not Quantified")
+                        "Not Detected", "Detected Not Quantified",
+                        "*Present <QL")
+  detectStrings <- c("*Present >QL", "Present Above Quantification Limit")
+
+  # Look for unrecognized strings, omit these rows if discovered.
   strangeStrings <- setdiff(unique(na.omit(wqpData$ResultDetectionConditionText)),
-                            nonDetectStrings)
-  if(length(strangeStrings) > 0)
-    stop(paste("Unrecognized detection limit condition text:",
-               paste(strangeStrings, collapse = ", "),
-               "Deal with these manually."))
+                            c(nonDetectStrings, detectStrings))
+  if(length(strangeStrings) > 0) {
+    warning(sprintf("Unrecognized detection limit condition text: %s. \
+                    Omitting these rows.",
+                  paste(strangeStrings, collapse = ", ")))
+    wqpData <- wqpData[! (wqpData$ResultDetectionConditionText %in%
+                            strangeStrings), ]
+
+  }
 
   islt <- function(x, y)
     !is.na(x) & !is.na(y) & x < y
@@ -481,7 +494,6 @@ wqp_checkBDL <- function(wqpData) {
       summarize(maxdl = max(DetectionQuantitationLimitMeasure.MeasureValue),
                 units = unique(DetectionQuantitationLimitMeasure.MeasureUnitCode)) %>% # May need better way to check units
       ungroup()
-
     # replace missing values with maximum reported
     wd1 <- left_join(wd, wqp_maxdl, by = c("MonitoringLocationIdentifier",
                                            "CharacteristicName",
@@ -511,22 +523,21 @@ wqp_checkBDL <- function(wqpData) {
                     ResultMeasure.MeasureUnitCode != "") %>%
       group_by(CharacteristicName,
                ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
-      summarize(mindet = min(ResultMeasureValue),
-                units = unique(ResultMeasure.MeasureUnitCode)) %>% # May need better way to check units
+               MonitoringLocationIdentifier,
+               ResultMeasure.MeasureUnitCode) %>%
+      summarize(mindet = min(ResultMeasureValue)) %>% # May need better way to check units
       ungroup()
-
     # replace missing values with minimum reported above detection limit
     wd1 <- left_join(wd, wqp_mindet, by = c("MonitoringLocationIdentifier",
                                             "CharacteristicName",
-                                            "ResultSampleFractionText")) %>%
+                                            "ResultSampleFractionText",
+                                            "ResultMeasure.MeasureUnitCode")) %>%
       mutate(DetectionQuantitationLimitMeasure.MeasureValue = mindet,
-             DetectionQuantitationLimitMeasure.MeasureUnitCode = units,
+             DetectionQuantitationLimitMeasure.MeasureUnitCode = ResultMeasure.MeasureUnitCode,
              DetectionQuantitationLimitTypeName = "Maximum reported above limit in dataset.") %>%
-      select(-mindet, -units)
+      select(-mindet)
     wd1
   }
-
   # replace detlim, detlim units with maximum reported detection limit
   badrows <- findBadRows(wqpData)
   if (sum(badrows) > 0)
@@ -556,7 +567,7 @@ wqp_checkActivity <- function(wqpData) {
   wqpData <- wqpData[!grepl("Quality Control", wqpData$ActivityTypeCode), ]
   unrecTypes_conc <- setdiff(wqpData$ActivityTypeCode, knownTypes)
   if(length(unrecTypes_conc) > 0)
-    warning(paste("Unknown activity types present in conc data:",
+    warning(paste("Unknown activity types present in data:",
                   paste(unrecTypes_conc, collapse = "; ")))
   wqpData
 }

@@ -3,7 +3,7 @@
 \name{condlSample.rcgam}
 \alias{condlSample.rcgam}
 \alias{condlSample.rclm}
-\title{Predict method for rclm/ rcgam fits}
+\title{Generate samples from a conditional distribution obtained from a model prediction}
 \usage{
 \method{condlSample}{rcgam}(object, newdata, flowcol = "flow",
   flow.units = "ft3/s", quantile, ...)
@@ -33,9 +33,9 @@
 \item{smear}{Use Smearing estimator to correct transformation bias?}
 }
 \description{
-Predict values using an rclm or rcgam model object
+Generate samples from a conditional distribution obtained from a model prediction
 
-Predict values using an rclm or rcgam model object
+Generate samples from a conditional distribution obtained from a model prediction
 }
 \section{Methods (by class)}{
 \itemize{

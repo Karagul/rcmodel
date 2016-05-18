@@ -30,29 +30,35 @@ This document details an example data retrieval workflow. The steps are:
 ```{r}
 bb1 <- bbox(-80, 38, -77, 40, plot = TRUE)
 
-inputChars <- charNameLookup("alumin")
+inputChars <- charNameLookup("nitrate")
 flowChars <- bind_rows(charNameLookup("flow"),
                        charNameLookup("discharge"))
 
 inputChars
-flowChars
+print(flowChars, n = 30)
 ```
 
 
 ### Make WQP request
 
 ```{r}
-aluminumData <- getConcData(bBox = bb1, charname = inputChars$value)
+(nitrChars <- inputChars[c(4, 5, 6, 8), ])
+
+nitrateData <- getConcData(bBox = bb1, charname = nitrChars$value)
+dim(nitrateData)
+
 ```
 
 ### Perform checks
 
 ```{r}
-alData <- aluminumData %>% 
+no3Data <- nitrateData %>% 
   wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkFraction() %>% 
-  wqp_checkUnits(convertTo = c("mg/l", "mg/kg")) %>% 
+  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg")) 
+
+no3Data <- no3Data %>% 
   wqp_checkBDL()
 ```
 
@@ -60,75 +66,50 @@ alData <- aluminumData %>%
 ### Get flow data
 
 ```{r}
+flowsites <- unique(no3Data$MonitoringLocationIdentifier)
+flowData <- getFlowData(flowsites, n = 100)
 
-flowsites <- unique(alData$MonitoringLocationIdentifier)
-flowData <- getFlowData(flowsites)
-
-summary(as.factor(flowData$ActivityTypeCode))
-summary(as.factor(flowData$ResultMeasure.MeasureUnitCode))
 qData <- flowData %>% 
   wqp_checkActivity() %>% 
   wqp_checkUnits(convertTo = "cfs") %>% 
   wqp_checkBDL()
-summary(as.factor(qData$ActivityTypeCode))
-summary(as.factor(qData$ResultMeasure.MeasureUnitCode))
+
 ```
 
 Get single flow observation for each day.
 
 ```{r}
-maxPerDay <- function(df) {
-  max(summary(as.factor(df$ActivityStartDate)))
-  which.max(summary(as.factor(df$ActivityStartDate)))
-  
-}
-df <- flowData_good[[3]]
-df[df$ActivityStartDate == "2008-06-16", "ActivityTypeCode"]
-```
+nPerDay <- no3Data %>% 
+  group_by(MonitoringLocationIdentifier,
+           CharacteristicName, ActivityStartDate,
+           ResultMeasure.MeasureUnitCode,
+           ResultSampleFractionText) %>% 
+  summarize(n = n(), minq = min(ResultMeasureValue), maxq = max(ResultMeasureValue)) %>% 
+  ungroup() %>% 
+  arrange(desc(n))
+print(nPerDay, n = 100)
 
-Some are quality control replicates
+qData %>% 
+  filter(MonitoringLocationIdentifier == "211WVOWR-P-004-0002") %>% 
+  transmute(Date = ActivityStartDate, datetime = ActivityStartDateTime,
+            value = ResultMeasureValue, units = ResultMeasure.MeasureUnitCode) %>% 
+  arrange(datetime) %>% 
+  ggplot(aes(x = datetime, y = value)) +
+  geom_point()
 
-```{r}
-lapply(flowData_good, function(x) unique(x$ActivityTypeCode)) %>% 
-  unlist %>% 
-  as.factor() %>% 
-  summary()
-```
-
-Add to workflow the omission of "quality control" activity types.
-
-```{r}
-
-all(sapply(flowData_good, ncol) == 65)
-
-#' Takes an object returned by readWQPData (or getConcData) and returns an
-#' object of class rcData
-#'
-wqpToRcData <- function(concData, flowData) {
-  
-  knownTypes <- c("Sample-Routine", "Sample", "Not determined",
-                  "Field Msr/Obs", "Sample-Composite Without Parents")
-  
-  # Omit quality control samples
-  concData <- concData[!grepl("Quality Control", concData$ActivityTypeCode), ]
-  unrecTypes_conc <- setdiff(concData$ActivityTypeCode, knownTypes)
-  if(length(unrecTypes_conc) > 0)
-    warning(paste("Unknown activity types present in conc data:", 
-                  paste(unrecTypes_conc, collapse = "; ")))
-  flowData <- flowData[!grepl("Quality Control", flowData$ActivityTypeCode), ]
-  unrecTypes_flow <- setdiff(flowData$ActivityTypeCode, knownTypes)
-  if(length(unrecTypes_flow) > 0)
-    warning(paste("Unknown activity types present in flow data:", 
-                  paste(unrecTypes_flow, collapse = "; ")))
-
-  # Make sure all columns are accounted for
-  # Calculate BDLs
-  
-}
+qData %>% 
+  filter(MonitoringLocationIdentifier == "USGS-01639000",
+         # ResultMeasure.MeasureUnitCode == "mg/l",
+         # ResultSampleFractionText == "Dissolved",
+         ActivityStartDate == "1993-12-05") %>%
+  transmute(Date = ActivityStartDate, datetime = ActivityStartDateTime,
+            value = ResultMeasureValue, units = ResultMeasure.MeasureUnitCode) %>% 
+  arrange(datetime) %>% 
+  ggplot(aes(x = datetime, y = value)) +
+  geom_point()
 
 
 ```
-
 
 
 ### Convert to rcData
@@ -142,46 +123,4 @@ rcDatas <- lapply()
 ```
 
 
-### Fix getConcData to always give same columns and classes DONE. Made wqp_checkClasses function
-
-```{r}
-classDF <- function(df) 
-  as.data.frame(lapply(df, function(obj) paste(class(obj), collapse = ";")))
-classes <- lapply(flowData_good, classDF) %>% 
-  bind_rows()
-
-glimpse(classes)
-dim(classes)
-dim(unique(classes))
-
-glimpse(unique(classes))
-
-datecols <- names(aluminumData)[grepl("Date$", names(aluminumData))]
-
-notDate <- sapply(flowData_good, function(df) class(df[[datecols[4]]]) != "Date") %>% 
-  which()
-notDate
-
-```
-
-### Deal with units
-
-```{r}
-unique(aluminumData$ResultMeasure.MeasureUnitCode)
-# Which are in percent?
-
-which(aluminumData$ResultMeasure.MeasureUnitCode == "%")
-aluminumData[10330, ] %>% glimpse
-dataRetrieval::pCodeToName %>% filter(parm_cd == "30221")
-
-which(aluminumData$ResultMeasure.MeasureUnitCode == "mg/kg")
-aluminumData[3430, ] %>% glimpse
-dataRetrieval::pCodeToName %>% filter(parm_cd == "01108")
-
-# So is the problem bed sediment?
-aluminumData$ResultSampleFractionText %>% unique
-
-```
-
-Make function convertToMg_L 
 

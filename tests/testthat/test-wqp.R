@@ -4,7 +4,7 @@ test_that("unit conversion works as expected", {
 
   expect_error(convertUnits(1, c("abc", "def"), "ghi"))
   expect_equal(convertUnits(1, "mg/L", "ug/L"),
-               data.frame(x = 1000, units = "ug/l", stringsAsFactors = FALSE))
+               data.frame(x = 1000, units = "ug/L", stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(1, "abc", "abc"),
                data.frame(x = 1, units = "abc", stringsAsFactors = FALSE))
@@ -14,15 +14,15 @@ test_that("unit conversion works as expected", {
                           stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "def"), to = c("ug/L")),
-               data.frame(x = c(1000, NA), units = c("ug/l", "ug/l"),
+               data.frame(x = c(1000, NA), units = c("ug/L", "ug/L"),
                           stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "def"), to = c("ug/L", "def")),
-               data.frame(x = c(1000, 1), units = c("ug/l", "def"),
+               data.frame(x = c(1000, 1), units = c("ug/L", "def"),
                           stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "mg/kg"), to = c("ug/L", "ug/kg")),
-               data.frame(x = c(1000, 1000), units = c("ug/l", "ug/kg"),
+               data.frame(x = c(1000, 1000), units = c("ug/L", "ug/kg"),
                           stringsAsFactors = FALSE))
 })
 

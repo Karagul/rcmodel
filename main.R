@@ -23,6 +23,7 @@ use_package("conditionalSample")
 use_package("nlme")
 # use_package("markstats", type = "Depends")
 use_package("R.utils")
+use_package("leaflet", type = "suggests")
 use_testthat()
 
 # document
