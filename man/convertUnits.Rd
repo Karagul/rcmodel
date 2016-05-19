@@ -4,7 +4,7 @@
 \alias{convertUnits}
 \title{Wrapper for ud.convert that accepts vector inputs and multiple conversion candidates.}
 \usage{
-convertUnits(x, from, to)
+convertUnits(x, from, to, inconvertibles = c("preserve", "omit"))
 }
 \arguments{
 \item{x}{Numeric vector of values}
@@ -12,6 +12,9 @@ convertUnits(x, from, to)
 \item{from}{Units of x values}
 
 \item{to}{Units to convert to.}
+
+\item{inconvertibles}{Should units that cannot be converted be preserved
+or omitted from the result?}
 }
 \value{
 A data.frame with columns x and units

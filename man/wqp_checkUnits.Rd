@@ -6,7 +6,8 @@
 1. Looking up using USGSPCode
 2. If value is zero, assigns units as most commonly used units in dataset}
 \usage{
-wqp_checkUnits(wqpData, convertTo = NULL)
+wqp_checkUnits(wqpData, convertTo = NULL, inconvertibles = c("preserve",
+  "omit"))
 }
 \arguments{
 \item{wqpData}{data.frame returned by readWQPData}
@@ -14,6 +15,11 @@ wqp_checkUnits(wqpData, convertTo = NULL)
 \item{convertTo}{Optional character vector specifying the units to be converted to.
 If more than one is provided, they are tried in the order they are given.
 The udunits2 package is used for conversion.}
+
+\item{inconvertibles}{Should units that cannot be converted be preserved
+or omitted from the result?}
+
+\item{convertTo}{vector of candidates for unit conversion.}
 }
 \description{
 Replaces missing units by
