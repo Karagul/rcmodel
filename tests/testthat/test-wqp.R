@@ -10,11 +10,18 @@ test_that("unit conversion works as expected", {
                data.frame(x = 1, units = "abc", stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "def"), to = c("def")),
-               data.frame(x = c(NA, 1), units = c("def", "def"),
+               data.frame(x = c(1, 1), units = c("mg/L", "def"),
                           stringsAsFactors = FALSE))
 
+  t1 <- convertUnits(c(1, 1), c("mg/L", "def"), to = c("def"),
+               inconvertibles = "omit")
+  t2 <- data.frame(x = c(1), units = c("def"),
+                          stringsAsFactors = FALSE)
+  expect_equal(t1[[1]], t2[[1]])
+  expect_equal(t1[[2]], t2[[2]])
+
   expect_equal(convertUnits(c(1, 1), c("mg/L", "def"), to = c("ug/L")),
-               data.frame(x = c(1000, NA), units = c("ug/L", "ug/L"),
+               data.frame(x = c(1000, 1), units = c("ug/L", "def"),
                           stringsAsFactors = FALSE))
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "def"), to = c("ug/L", "def")),
@@ -23,6 +30,10 @@ test_that("unit conversion works as expected", {
 
   expect_equal(convertUnits(c(1, 1), c("mg/L", "mg/kg"), to = c("ug/L", "ug/kg")),
                data.frame(x = c(1000, 1000), units = c("ug/L", "ug/kg"),
+                          stringsAsFactors = FALSE))
+
+  expect_equal(convertUnits(c(NA, NA), c("mg/l", "mg/kg"), to = c("ug/L", "ug/kg")),
+               data.frame(x = c(NA_real_, NA_real_), units = c("ug/L", "ug/kg"),
                           stringsAsFactors = FALSE))
 })
 

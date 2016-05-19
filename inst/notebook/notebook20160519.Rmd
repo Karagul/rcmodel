@@ -1,0 +1,202 @@
+---
+title: "notebook20160519"
+author: "Mark Hagemann"
+date: "May 19, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Realizing I may not be able to get quality flag for flow values retrieved via wqp. 
+
+But I'll try anyway
+
+```{r}
+textcols <- grep("Text", names(qData))
+alltext <- qData[textcols] %>% 
+  unlist() %>% 
+  na.omit() %>% 
+  unique()
+length(alltext)
+class(alltext)
+max(nchar(alltext))
+which.max(nchar(alltext))
+alltext[which.max(nchar(alltext))]
+
+flags <- grep("flag", alltext, ignore.case = TRUE)
+flags
+
+names(qData)[-textcols]
+
+unique(qData$MeasureQualifierCode)
+
+codecols <- grep("Code", names(qData))
+allcodes <- qData[codecols] %>% 
+  unlist() %>% 
+  na.omit() %>% 
+  unique()
+
+length(allcodes)
+allcodes
+
+nacols <- which(sapply(qData, function(x) sum(!is.na(x)) == 0))
+
+names(qData)[c(-textcols, -codecols, -nacols)]
+
+unique(qData$PrecisionValue)
+unique(no3Data$PrecisionValue)
+
+colcols <- grep("Collection", names(qData))
+allcollects <- qData[colcols] %>% 
+  unlist() %>% 
+  na.omit() %>% 
+  unique()
+
+length(allcollects)
+allcollects
+
+names(qData)[c(-textcols, -codecols, -nacols, -colcols)]
+
+unique(qData$ResultStatusIdentifier)
+```
+
+Hark!
+
+```{r}
+summary(as.factor(qData$ResultValueTypeName))
+summary(as.factor(no3Data$ResultValueTypeName))
+summary(as.factor(qData$ResultStatusIdentifier))
+summary(as.factor(no3Data$ResultStatusIdentifier))
+
+```
+
+### Automate purging of duplicates
+
+```{r}
+wqDups <- which(duplicated(no3Simple))
+
+getDups <- function(wqpData, simpleData, simpleRow) {
+  pasteList <- function(list) Reduce(paste0, list)
+  rows <- pasteList(simpleData == pasteList(simpleRow))
+  wqpData[rows,]
+}
+
+getDups(no3Data, no3Simple, no3Simple[wqDups[1], ]) # Takes way too long.
+
+dim(unique(wqDups))
+
+```
+
+Look at the rows that are not duplicated in the no3Data but are duplicated in the no3Simple
+
+```{r}
+dups1 <- setdiff(which(duplicated(no3Simple)), 
+                 which(duplicated(no3Data)))
+
+no3Comp <- wqp_complicateConc(no3Simple)
+
+i <- sample(1:length(dups1), 1)
+no3Comp[dups1[i],] %>% 
+  left_join(no3Data) %>% 
+  glimpse
+
+```
+
+Why is this showing up as mg/kg?
+
+```{r}
+ud.are.convertible("mg/l as N", "mg/kg")
+
+compi <- no3Comp[dups1[866],] %>% 
+  rename(newunit = ResultMeasure.MeasureUnitCode) %>% 
+  left_join(nitrateData)
+glimpse(compi)
+```
+
+Clearly hear it is reported as "mg/l" and "mg/l as N". 
+
+```{r}
+
+compi %>% 
+  wqp_checkClasses() %>% 
+  wqp_checkActivity() %>% 
+  wqp_checkFraction() %>% 
+  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg")) %>% 
+  glimpse
+
+```
+
+Trying some more in stepwise manner when creating no3Data
+
+```{r}
+checkRow <- function(data) {
+  no3Comp[dups1[866],] %>% 
+    rename(newunit = ResultMeasure.MeasureUnitCode) %>% 
+    left_join(data) %>% 
+    glimpse
+}
+checkRow(no3Data)
+```
+
+So problem is in checkBDL?!
+
+### Doing work to convert wqp retrievals to rcData
+
+Function to give wqpData only the columns I find important for *concentration* data
+
+Important columns:
+
+- Date
+- datetime
+- station
+- char
+- simpleChar
+- frac
+- value
+- units
+- is.bdl
+
+Done. See wqp_simplifyConc(), wqp_simplifyFlow()
+
+```{r}
+# charNames = read.csv("data/characteristicNames.csv", stringsAsFactors = FALSE)
+# 
+# mutate(simpleChar = plyr::mapvalues(char, from = charNames$Name, 
+#                                       to = charNames$AltName)) 
+
+
+no3Simple <- wqp_simplifyConc(no3Data)
+qSimple <- wqp_simplifyFlow(qData)
+
+glimpse(qSimple)
+```
+
+Now to combine these
+
+```{r}
+wqp_combine <- function(concData, flowData) {
+  out <- full_join()
+}
+```
+
+
+Are BDL values recorded as NA?
+
+```{r}
+no3Data[is.na(no3Data$ResultMeasureValue),]$ResultDetectionConditionText %>% 
+  unique
+```
+
+Yes. Therefore it's important to preserve NA units when doing wqp_checkUnits.
+
+---
+
+OK, function appears to be working, but now I'm violating my own assumptions about its behavior in certain cases. Because I'm using `ud.are.convertible`, original units are now preserved when they can't be converted to any of the candidates. This is better when I'm using multiple candidates, as the alternative would always convert to the last candidate in the list when no suitable candidates are available. 
+
+So fix tests DONE.
+
+And Fix units document. 
+
+And commit changes. 

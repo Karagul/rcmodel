@@ -149,6 +149,8 @@ cfs_m3s <- function(x) x / 35.3147
 #' @param x Numeric vector of values
 #' @param from Units of x values
 #' @param to Units to convert to.
+#' @param inconvertibles Should units that cannot be converted be preserved
+#' or omitted from the result?
 #' @return A data.frame with columns x and units
 #' @details If length(to) > 0, units the first is tried first, followed by the second, etc.
 #'  If units in from are already contained in to, these units are not converted.
@@ -156,7 +158,10 @@ cfs_m3s <- function(x) x / 35.3147
 #' @importFrom assertthat assert_that
 #' @export
 
-convertUnits <- function(x, from, to) {
+convertUnits <- function(x, from, to, inconvertibles = c("preserve", "omit")) {
+
+  inconvertibles <- match.arg(inconvertibles)
+
   if (length(from) == 1)
     from <- rep(from, length(x))
 
@@ -181,16 +186,27 @@ convertUnits <- function(x, from, to) {
     unlist(Map(conv(to_), x_ = x_, from_ = from_))
   }
 
-  inds <- is.na(match(from, to))
+  inds <- is.na(match(from, to)) # indices of original units vector that don't match conversion candidates
   out <- data.frame(x = x, units = from, stringsAsFactors = FALSE)
-  for (i in 1:length(to)) {
-    if (sum(inds) == 0)
-      break
+
+  # map unique(from) to unit from to
+  ufrom <- unique(from)
+  whichCanConvert <- function(tounit)
+    ufrom[vapply(ufrom, ud.are.convertible, logical(1), u2 = tounit)]
+
+  convList <- lapply(to, whichCanConvert) # Which are able to be converted to what
+
+  for (i in 1:length(convList)) {
+    if (length(convList[[i]]) == 0)
+      next
+    inds <- from %in% convList[[i]]
     out[inds, ]$x = conv2(x[inds], from[inds], to[i])
     out[inds, ]$units <- to[i]
-    inds <- is.na(out$x)
-
   }
+
+  if (inconvertibles == "omit")
+    out <- out[out$units %in% to, ]
+
   out
 }
 
@@ -228,8 +244,14 @@ validateUnits <- function(unit) {
 #' If more than one is provided, they are tried in the order they are given.
 #' The udunits2 package is used for conversion.
 #' @param wqpData data.frame returned by readWQPData
+#' @param convertTo vector of candidates for unit conversion.
+#' @param inconvertibles Should units that cannot be converted be preserved
+#' or omitted from the result?
 #' @export
-wqp_checkUnits <- function(wqpData, convertTo = NULL) {
+wqp_checkUnits <- function(wqpData, convertTo = NULL,
+                           inconvertibles = c("preserve", "omit")) {
+
+  inconvertibles <- match.arg(inconvertibles)
 
   badrows <- is.na(wqpData$ResultMeasure.MeasureUnitCode) |
     wqpData$ResultMeasure.MeasureUnitCode == ""
@@ -279,6 +301,8 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL) {
   stillbad2 <- is.na(wqpData$ResultMeasure.MeasureUnitCode) |
     wqpData$ResultMeasure.MeasureUnitCode == ""
 
+  # checkRow(wqpData)
+
   if (!is.null(convertTo)) {
     convertedVals <- convertUnits(x = wqpData$ResultMeasureValue,
                                   from = wqpData$ResultMeasure.MeasureUnitCode,
@@ -287,13 +311,20 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL) {
       x = wqpData$DetectionQuantitationLimitMeasure.MeasureValue,
       from = wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode,
       to = convertTo)
+    # browser()
     wqpData$ResultMeasureValue <- convertedVals$x
     wqpData$ResultMeasure.MeasureUnitCode <- convertedVals$units
+
+    # checkRow(wqpData)
+
     wqpData$DetectionQuantitationLimitMeasure.MeasureValue <-
       convertedDLs$x
     wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode <-
       convertedDLs$units
   }
+
+  if (inconvertibles == "omit")
+    wqpData <- wqpData[wqpData$ResultMeasure.MeasureUnitCode %in% convertTo, ]
 
   wqpData
 }
@@ -570,6 +601,64 @@ wqp_checkActivity <- function(wqpData) {
     warning(paste("Unknown activity types present in data:",
                   paste(unrecTypes_conc, collapse = "; ")))
   wqpData
+}
+
+
+# Simplify wqp data structures --------------------------------------------
+
+#' Simplify wqp concentration data
+#' @param wqpData processed WQP data result
+#' @export
+wqp_simplifyConc <- function(wqpData) {
+  colmap <- c("Date" = "ActivityStartDate",
+              "datetime" = "ActivityStartDateTime",
+              "station" = "MonitoringLocationIdentifier",
+              "char" = "CharacteristicName",
+              "frac" = "ResultSampleFractionText",
+              "conc" = "ResultMeasureValue",
+              "conc.units" = "ResultMeasure.MeasureUnitCode",
+              "conc.flag" = "ResultStatusIdentifier",
+              "detlim" = "DetectionQuantitationLimitMeasure.MeasureValue",
+              "is.bdl" = "is.bdl")
+  out <- wqpData[colmap]
+  names(out) <- names(colmap)
+  out
+}
+
+#' Unsimplify wqp concentration data
+#' @param wqpData processed WQP data result
+#' @export
+wqp_complicateConc <- function(simpleConc) {
+  colmap <- c("Date" = "ActivityStartDate",
+              "datetime" = "ActivityStartDateTime",
+              "station" = "MonitoringLocationIdentifier",
+              "char" = "CharacteristicName",
+              "frac" = "ResultSampleFractionText",
+              "conc" = "ResultMeasureValue",
+              "conc.units" = "ResultMeasure.MeasureUnitCode",
+              "conc.flag" = "ResultStatusIdentifier",
+              "detlim" = "DetectionQuantitationLimitMeasure.MeasureValue",
+              "is.bdl" = "is.bdl")
+  out <- simpleConc
+  names(out) <- colmap
+  # out <- wqp_checkClasses(out)
+  out
+}
+
+#' Simplify wqp flow data
+#' @param wqpData processed WQP data result
+#' @export
+wqp_simplifyFlow <- function(wqpData) {
+  colmap <- c("Date" = "ActivityStartDate",
+              "datetime" = "ActivityStartDateTime",
+              "station" = "MonitoringLocationIdentifier",
+              "flowchar" = "CharacteristicName",
+              "flow" = "ResultMeasureValue",
+              "flow.units" = "ResultMeasure.MeasureUnitCode",
+              "flow.flag" = "ResultStatusIdentifier")
+  out <- wqpData[colmap]
+  names(out) <- names(colmap)
+  out
 }
 
 #' ripped off from http://stackoverflow.com/a/8189441

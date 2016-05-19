@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+***This document is no longer valid, as I have changed my mind as to best practices after some experimentation. Updates to come.***
+
 Herein I document the complications and my conclusions regarding unit conversion, specifically in the context of hydrology/water-quality data, such as that provided in the Water Quality Portal (WQP).
 
 

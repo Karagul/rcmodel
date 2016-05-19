@@ -56,8 +56,8 @@ no3Data <- nitrateData %>%
   wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkFraction() %>% 
-  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg")) 
-
+  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg"),
+                 inconvertibles = "omit") 
 no3Data <- no3Data %>% 
   wqp_checkBDL()
 ```
@@ -114,13 +114,8 @@ qData %>%
 
 ### Convert to rcData
 
-1. Make preliminary data.frame with columns Date, flow, flow.units, conc, conc.units, is.bdl
-
-
 ```{r}
 
-rcDatas <- lapply()
 ```
-
 
 
