@@ -19,8 +19,9 @@ This document details an example data retrieval workflow. The steps are:
 2. Make WQP request
 3. Perform checks on retrieved data
     - Accounting of columns and classes
+    - Remove undesired "activity" (e.g. quality control samples)
     - Remove undesired fractions
-    - Address units reported (optionally convert these)
+    - Look up missing units, optionally convert these
     - Address detection limits and try to infer where missing.
     
 
@@ -44,7 +45,7 @@ print(flowChars, n = 30)
 ```{r}
 (nitrChars <- inputChars[c(4, 5, 6, 8), ])
 
-nitrateData <- getConcData(bBox = bb1, charname = nitrChars$value)
+nitrateData <- timeit(getConcData(bBox = bb1, charname = nitrChars$value))
 dim(nitrateData)
 
 ```
@@ -67,9 +68,9 @@ no3Data <- no3Data %>%
 
 ```{r}
 flowsites <- unique(no3Data$MonitoringLocationIdentifier)
-flowData <- getFlowData(flowsites, n = 100)
+no3Flow <- timeit(getFlowData(flowsites, n = 100))
 
-qData <- flowData %>% 
+qData <- no3Flow %>% 
   wqp_checkActivity() %>% 
   wqp_checkUnits(convertTo = "cfs") %>% 
   wqp_checkBDL()
@@ -115,7 +116,14 @@ qData %>%
 ### Convert to rcData
 
 ```{r}
+no3Simple <- wqp_simplifyConc(no3Data)
+qSimple <- wqp_simplifyFlow(qData)
 
+glimpse(no3Simple)
+
+rawdat <- full_join()
+
+rcd <- makeModelData()
 ```
 
 

@@ -2,12 +2,7 @@
 % Please edit documentation in R/wqData.R
 \name{wqp_checkBDL}
 \alias{wqp_checkBDL}
-\title{Check for detection limit behavior
-Adds is.bdl column
-Converts detection-limit units to MeasureValue units.
-Augments DetectionQuantitationLimitMeasure.MeasureValue,
-DetectionQuantitationLimitMeasure.MeasureUnitCode.
-If detection limit not reported, assumes it is at largest non-bdl value for that dataset}
+\title{Check for detection limit behavior}
 \usage{
 wqp_checkBDL(wqpData)
 }
@@ -15,11 +10,11 @@ wqp_checkBDL(wqpData)
 \item{wqpData}{data.frame returned by readWQPData}
 }
 \description{
-Check for detection limit behavior
-Adds is.bdl column
-Converts detection-limit units to MeasureValue units.
-Augments DetectionQuantitationLimitMeasure.MeasureValue,
+This function performs the following:
+1. Adds is.bdl column
+2. Converts detection-limit units to MeasureValue units.
+3. Augments DetectionQuantitationLimitMeasure.MeasureValue,
 DetectionQuantitationLimitMeasure.MeasureUnitCode.
-If detection limit not reported, assumes it is at largest non-bdl value for that dataset
+4. If detection limit not reported, assumes it is at largest non-bdl value for that dataset
 }
 

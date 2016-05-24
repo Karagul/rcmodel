@@ -2,9 +2,7 @@
 % Please edit documentation in R/wqData.R
 \name{wqp_checkUnits}
 \alias{wqp_checkUnits}
-\title{Replaces missing units by
-1. Looking up using USGSPCode
-2. If value is zero, assigns units as most commonly used units in dataset}
+\title{Look up missing units, possibly converting them to a supplied list of candidates.}
 \usage{
 wqp_checkUnits(wqpData, convertTo = NULL, inconvertibles = c("preserve",
   "omit"))
@@ -22,7 +20,7 @@ or omitted from the result?}
 \item{convertTo}{vector of candidates for unit conversion.}
 }
 \description{
-Replaces missing units by
+Replaces missing units by:
 1. Looking up using USGSPCode
 2. If value is zero, assigns units as most commonly used units in dataset
 }
