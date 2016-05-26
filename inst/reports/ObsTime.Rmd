@@ -1,0 +1,27 @@
+---
+title: "Observation time"
+author: "Mark Hagemann"
+date: "May 25, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+WQP data contain several columns indicating observation time. They are as follows: 
+
+
+
+
+Very often, the time of an observation is not recorded with higher than daily precision, and only the observation date is reported. In such cases, it is not clear how to represent them in a sub-daily format such as POSIClt or POSIXct. Several options are available:
+
+1. Report as missing (`NA` in R) these observations from the POSIXct column, and report only the date in `Date` format. 
+2. Report the bounds in which it is possible this observation took place, e.g. 00:00:00 - 23:59:59. 
+3. Report a single POSIXct time (such as midday), but encode the uncertainty, e.g. report 12:00:01. In this case, the user must know that anything with a time of 12:00:01 is not a precise measurement but rather an indication that the exact observation time is not known. 
+
+The wqp package uses the second option, as it best reports the uncertainty about an observation time. A potential downside is that it may confuse two different notions. On one hand, the observation may have occurred at a single, brief time within the reported bounds. Separately, it may be a summary statistic of multiple observations taken throughout the time interval, such as daily-averaged flows. 
+
+
+Creating time columns when only dates are reported requires additional information about time zone. This can typically be computed using date and location. 
+

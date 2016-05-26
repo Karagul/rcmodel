@@ -37,14 +37,21 @@ devtools::test()
 # Vignettes
 devtools::use_vignette("retrieval") # data retrieval
 
-# set up to use data
+
+# Datasets ----------------------------------------------------------------
 # dir.create("data")
 use_data(Phosphorus, overwrite = TRUE)
 use_data(rc_synth, overwrite = TRUE)
 use_data(nitrateData, overwrite = TRUE)
 use_data(no3Flow, overwrite = TRUE)
 
-# load and install package
+# internal, for functions
+use_data(tzTable, internal = TRUE, overwrite = TRUE)
+use_data(olsonTbl, internal = TRUE, overwrite = TRUE)
+use_data(scTable, internal = TRUE, overwrite = TRUE)
+
+
+# load and install package ------------------------------------------------
 
 devtools::install_github("markwh/markstats")
 devtools::install()

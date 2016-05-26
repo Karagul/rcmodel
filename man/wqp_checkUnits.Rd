@@ -5,7 +5,7 @@
 \title{Look up missing units, possibly converting them to a supplied list of candidates.}
 \usage{
 wqp_checkUnits(wqpData, convertTo = NULL, inconvertibles = c("preserve",
-  "omit"))
+  "omit"), depthUnits = NULL)
 }
 \arguments{
 \item{wqpData}{data.frame returned by readWQPData}
@@ -16,6 +16,8 @@ The udunits2 package is used for conversion.}
 
 \item{inconvertibles}{Should units that cannot be converted be preserved
 or omitted from the result?}
+
+\item{depthUnits}{Units to which to convert height/depth measurements, if desired.}
 
 \item{convertTo}{vector of candidates for unit conversion.}
 }

@@ -4,10 +4,14 @@
 \alias{wqp_simplifyFlow}
 \title{Simplify wqp flow data}
 \usage{
-wqp_simplifyFlow(wqpData)
+wqp_simplifyFlow(wqpData, average = c("none", "time"),
+  allowDuplicates = FALSE)
 }
 \arguments{
 \item{wqpData}{processed WQP data result}
+
+\item{allowDuplicates}{If \code{FALSE}, remove duplicates using \code{unique}
+following simplification.}
 }
 \description{
 Simplify wqp flow data

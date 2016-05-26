@@ -120,7 +120,7 @@ wqpToRcData <- function(concdata, flowdata) {
               station = MonitoringLocationIdentifier,
               flow = ResultMeasureValue,
               flow.units = ResultMeasure.MeasureUnitCode) %>%
-    group_by(station) %>%
+    group_by_(~station) %>%
     mutate(lqbar = mean(log(flow), na.rm = TRUE),
            lqsd = sd(log(flow), na.rm = TRUE))
 
@@ -250,26 +250,27 @@ validateUnits <- function(unit) {
 #' @param convertTo vector of candidates for unit conversion.
 #' @param inconvertibles Should units that cannot be converted be preserved
 #' or omitted from the result?
+#' @param depthUnits Units to which to convert height/depth measurements, if desired.
 #' @export
 wqp_checkUnits <- function(wqpData, convertTo = NULL,
-                           inconvertibles = c("preserve", "omit")) {
+                           inconvertibles = c("preserve", "omit"),
+                           depthUnits = NULL) {
 
   inconvertibles <- match.arg(inconvertibles)
   out <- wqpData
 
   badrows <- is.na(out$ResultMeasure.MeasureUnitCode) |
     out$ResultMeasure.MeasureUnitCode == ""
-  # browser()
+
   # 1. lookup units using USGS pcode
   ptbl <- dataRetrieval::pCodeToName
   badpcodes <- out$USGSPCode[badrows]
   badunits <- ptbl$measureunitcode[match(badpcodes, ptbl$parm_cd)]
 
   colind <- which(names(out) == "ResultMeasure.MeasureUnitCode")
-  # out <- as.data.frame(out)
-  # return(list(out = out, badrows = badrows, colind = colind, badunits = badunits)) # for debugging
   out[which(badrows), colind] <- badunits
 
+  # indices of bad missing units that were not found using usgspcode.
   stillbad <- is.na(out$ResultMeasure.MeasureUnitCode) |
     out$ResultMeasure.MeasureUnitCode == ""
 
@@ -277,11 +278,12 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL,
   isZero <- out$ResultMeasureValue == 0 &
     !is.na(out$ResultMeasureValue)
 
+  # function to find most common unit
   lookupUnitMode <- function(wd) {
     wd_smry <- wd %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier) %>%
       summarize(n = n())
     wqp_modes <- out %>%
       dplyr::filter(CharacteristicName %in% wd_smry$CharacteristicName,
@@ -289,9 +291,9 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL,
                     MonitoringLocationIdentifier %in% wd_smry$MonitoringLocationIdentifier,
                     !is.na(ResultMeasure.MeasureUnitCode),
                     ResultMeasure.MeasureUnitCode != "") %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier) %>%
       summarize(mode = Mode(ResultMeasure.MeasureUnitCode)) %>%
       ungroup()
     wd1 <- left_join(wd, wqp_modes, by = c("MonitoringLocationIdentifier",
@@ -301,15 +303,13 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL,
       select(-mode)
     wd1$ResultMeasure.MeasureUnitCode
   }
+
+  # replace using mode if some units are still missing.
   if (sum(stillbad & isZero) > 0)
     out[stillbad & isZero, ]$ResultMeasure.MeasureUnitCode <-
     lookupUnitMode(out[stillbad & isZero, ])
 
-  stillbad2 <- is.na(out$ResultMeasure.MeasureUnitCode) |
-    out$ResultMeasure.MeasureUnitCode == ""
-
-  # checkRow(out)
-
+  # 3. Perform unit conversion if necessary
   if (!is.null(convertTo)) {
     convertedVals <- convertUnits(x = out$ResultMeasureValue,
                                   from = out$ResultMeasure.MeasureUnitCode,
@@ -318,11 +318,10 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL,
       x = out$DetectionQuantitationLimitMeasure.MeasureValue,
       from = out$DetectionQuantitationLimitMeasure.MeasureUnitCode,
       to = convertTo)
-    # browser()
+
     out$ResultMeasureValue <- convertedVals$x
     out$ResultMeasure.MeasureUnitCode <- convertedVals$units
 
-    # checkRow(out)
 
     out$DetectionQuantitationLimitMeasure.MeasureValue <-
       convertedDLs$x
@@ -330,12 +329,14 @@ wqp_checkUnits <- function(wqpData, convertTo = NULL,
       convertedDLs$units
   }
 
+
   if (inconvertibles == "omit")
     out <- out[out$ResultMeasure.MeasureUnitCode %in% convertTo, ]
 
-  out <- wqp_setAttrs(out, attributes(wqpData))
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "units")
   out
 }
+
 
 
 #' Filters wqpData to include only allowed fractions
@@ -354,7 +355,7 @@ wqp_checkFraction <- function(wqpData, silent = FALSE) {
                           collapse = ", ")))
   }
 
-  out <- wqp_setAttrs(out, attributes(wqpData))
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "fraction")
 
   out
 }
@@ -449,7 +450,7 @@ wqp_checkClasses <- function(wqpData) {
     out[wrongClass] <- Map(fixClass, x = out[wrongClass],
                                class = reference[wrongClass])
   }
-  out <- wqp_setAttrs(out, attributes(wqpData))
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "classes")
   out
 }
 
@@ -524,9 +525,9 @@ wqp_checkBDL <- function(wqpData) {
   # set detection limit to maximum reported limit
   lookupDetLim <- function(wd) {
     wd_smry <- wd %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier) %>%
       summarize(n = n())
 
     # maximum detection limit reported for each dataset
@@ -535,9 +536,9 @@ wqp_checkBDL <- function(wqpData) {
       dplyr::filter(CharacteristicName %in% wd_smry$CharacteristicName,
                     ResultSampleFractionText %in% wd_smry$ResultSampleFractionText,
                     MonitoringLocationIdentifier %in% wd_smry$MonitoringLocationIdentifier) %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier) %>%
       summarize(maxdl = max(DetectionQuantitationLimitMeasure.MeasureValue),
                 units = unique(DetectionQuantitationLimitMeasure.MeasureUnitCode)) %>% # May need better way to check units
       ungroup()
@@ -555,9 +556,9 @@ wqp_checkBDL <- function(wqpData) {
   # Set detection limit to minimum non-bdl value
   lookupMinDet <- function(wd) {
     wd_smry <- wd %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier) %>%
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier) %>%
       summarize(n = n())
 
     # Minimum non-BDL value for each dataset
@@ -568,11 +569,11 @@ wqp_checkBDL <- function(wqpData) {
                     MonitoringLocationIdentifier %in% wd_smry$MonitoringLocationIdentifier,
                     !is.na(ResultMeasure.MeasureUnitCode),
                     ResultMeasure.MeasureUnitCode != "") %>%
-      group_by(CharacteristicName,
-               ResultSampleFractionText,
-               MonitoringLocationIdentifier,
-               ResultMeasure.MeasureUnitCode) %>%
-      summarize(mindet = min(ResultMeasureValue)) %>% # May need better way to check units
+      group_by_(~CharacteristicName,
+               ~ResultSampleFractionText,
+               ~MonitoringLocationIdentifier,
+               ~ResultMeasure.MeasureUnitCode) %>%
+      summarize(mindet = min(ResultMeasureValue)) %>%
       ungroup()
     # replace missing values with minimum reported above detection limit
     wd1 <- left_join(wd, wqp_mindet, by = c("MonitoringLocationIdentifier",
@@ -594,13 +595,58 @@ wqp_checkBDL <- function(wqpData) {
   stillbad <- findBadRows(out)
   if (sum(stillbad) > 0)
     out[stillbad, ] <- lookupMinDet(out[stillbad, ])
-  # browser()
-  out <- wqp_setAttrs(out, attributes(wqpData))
+  out <- wqp_setAttrs(out, attributes(wqpData), "BDL")
 
   out
 }
 
+
+#' Check depth measurements
+#'
+#' Assures that depth units are same and reference text is familiar.
+#'
+#' @param wqpData data.frame returned by readWQPData
+#' @param units Desired units for depth measurements
+#' @export
+
+wqp_checkDepth <- function(wqpData, units = "m") {
+
+  out <- wqpData
+
+  # Look for unrecognized strings, omit these rows if discovered.
+  surfaceStrings <- c("Surface", "From Surface", "SURFACE", "S")
+  strangeStrings <- c(out$ActivityDepthAltitudeReferencePointText,
+                      out$ResultDepthAltitudeReferencePointText) %>%
+    na.omit() %>%
+    unique() %>%
+    setdiff(surfaceStrings)
+
+  if(length(strangeStrings) > 0) {
+    warning(sprintf("Unrecognized depth reference text: %s. \
+                    Omitting these rows.",
+                    paste(strangeStrings, collapse = ", ")))
+    out <- out[! (out$ResultDepthAltitudeReferencePointText %in%
+                    strangeStrings), ]
+    out <- out[! (out$ActivityDepthAltitudeReferencePointText %in%
+                    strangeStrings), ]
+  }
+
+  # Convert depths to desired units
+  depthValCols <- grep("DepthHeightMeasure.MeasureValue", names(out),
+                       fixed = TRUE)
+  depthUnitCols <- grep("DepthHeightMeasure.MeasureUnitCode",
+                        names(out), fixed = TRUE)
+  newDepth <- Map(convertUnits, x = out[depthValCols], from = out[depthUnitCols],
+                  to = rep(units, length(depthValCols)))
+  out[depthValCols] <- lapply(newDepth, `[[`, "x")
+  out[depthUnitCols] <- lapply(newDepth, `[[`, "units")
+
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "depth")
+}
+
+
 #' Check activity types
+#'
 #' @param wqpData data.frame returned by readWQPData
 #' @export
 wqp_checkActivity <- function(wqpData) {
@@ -618,7 +664,136 @@ wqp_checkActivity <- function(wqpData) {
   if(length(unrecTypes_conc) > 0)
     warning(paste("Unknown activity types present in data:",
                   paste(unrecTypes_conc, collapse = "; ")))
-  out <- wqp_setAttrs(out, attributes(wqpData))
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "activity")
+  out
+}
+
+
+#' Helper functions for checkTZ
+#'
+#' returns timezones (Olson names) using geonames API.
+
+geonamesTZ <- function(lat, lon, geonamesUser) {
+
+  force(geonamesUser)
+
+  oneTZ <- function(lat, lon) {
+    url <- sprintf("http://api.geonames.org/timezoneJSON?lat=%s&lng=%s&radius=10&username=%s",
+                   lat, lon, geonamesUser)
+    # browser()
+    res <- GET(url)
+    stop_for_status(res)
+
+    out <- fromJSON(content(res, as = "text", encoding = "UTF-8"))$timezoneId
+    if (is.null(out))
+      stop("No timezone recognized for location.")
+    out
+  }
+
+  out <- unlist(Map(oneTZ, lat = lat, lon = lon))
+  out
+}
+
+#' Lookup a state via the FIPS state code
+#'
+#' @param code FIPS state code
+#' @param abb State abbreviation (i.e. postal code)
+#' @export
+statecodeLookup <- function(code = NULL, abb = NULL) {
+
+  x <- code
+  arg <- "Numeric.code"
+  if (is.null(x)) {
+    x <- abb
+    arg <- "Alpha.code"
+  }
+
+  if (is.null(x))
+    return(scTable)
+
+  scTable[match(x, scTable[[arg]]),]
+}
+
+timezoneLookup <- function(lat, lon, statecode, geonamesUser) {
+
+  state <- statecodeLookup(statecode)$Name
+  state <- gsub("District of Columbia", "Washington, D.C.", state)
+  stateOffsets <- tzTable$singleOffset[match(state, tzTable$State)]
+  stateOlson <- olsonTbl$olson[match(stateOffsets, olsonTbl$offset)]
+
+  if (sum(is.na(stateOlson)) > 0) {
+    nas <- is.na(stateOlson)
+    stateOlson[nas] <- geonamesTZ(lat = lat[nas], lon = lon[nas],
+                                  geonamesUser = geonamesUser)
+  }
+
+  stateOlson
+}
+
+#' Check timezones for sites in wqpData
+#'
+#' Uses geonames API, for which you need a key. Uses mine for now.
+#' @param wqpData data.frame returned by readWQPData
+#' @importFrom httr GET
+#' @importFrom jsonlite fromJSON
+wqp_checkTZ <- function(wqpData, geonamesUser = "markwh") {
+
+
+  oneTZ <- function(lat, lon) {
+    url <- sprintf("http://api.geonames.org/timezoneJSON?lat=%s&lng=%s&radius=10&username=%s",
+                   lat, lon, geonamesUser)
+    res <- GET(url)
+    stop_for_status(res)
+
+    out <- fromJSON(content(res, as = "text", encoding = "UTF-8"))$timezoneID
+    if (is.null(out))
+      stop("No timezone recognized for location.")
+    out
+  }
+
+  stainfo <- attr(wqpData, "siteInfo")
+
+  if (is.null(stainfo))
+    stop("wqpData needs a 'siteInfo' attribute.")
+
+  # add timezones in siteInfo attribute table
+  tzs <- timezoneLookup(lat = stainfo$dec_lat_va, lon = stainfo$dec_lon_va,
+                  statecode = stainfo$StateCode, geonamesUser = geonamesUser)
+  stainfo$timezone <- tzs
+  attr(wqpData, "siteInfo") <- stainfo
+
+  # Get timezones for entire dataset
+  out <- wqpData
+  wqpTZ <- tzs[match(out$MonitoringLocationIdentifier,
+                     stainfo$MonitoringLocationIdentifier)]
+
+  # replace missing endDates with startDates
+  out[["ActivityEndDate"]][is.na(out[["ActivityEndDate"]])] <-
+    out[["ActivityStartDate"]][is.na(out[["ActivityEndDate"]])]
+
+  # Which rows have no useable time information and must be treated as daily-resolution?
+  isDaily <- is.na(out$ActivityStartTime.Time) |
+    is.na(out$ActivityStartTime.TimeZoneCode)
+
+  # Replace time info for such rows with bounds of entire day
+  out[isDaily, ][["ActivityStartTime.Time"]] <- "00:00:00"
+  out[isDaily, ][["ActivityEndTime.Time"]] <- "23:59:59"
+  out[!isDaily, ][["ActivityEndTime.Time"]] <-
+    out[!isDaily, ][["ActivityStartTime.Time"]]
+  dstr <- "%Y-%m-%d"
+  tstr <- "%H:%M:%S"
+  startdt <- paste(format(out[["ActivityStartDate"]], dstr),
+                   out[["ActivityStartTime.Time"]])
+  enddt <- paste(format(out[["ActivityEndDate"]], dstr),
+                 out[["ActivityEndTime.Time"]])
+  out[["ActivityStartDateTime"]] <-
+    toUTC(startdt, tzstring = wqpTZ,
+          format = paste(dstr, tstr))
+  out[["ActivityEndDateTime"]] <-
+    toUTC(enddt, tzstring = wqpTZ,
+          format = paste(dstr, tstr))
+
+  out <- wqp_setAttrs(out, attributes = attributes(wqpData), check = "timezone")
   out
 }
 
@@ -627,8 +802,29 @@ wqp_checkActivity <- function(wqpData) {
 
 #' Simplify wqp concentration data
 #' @param wqpData processed WQP data result
+#' @param average How to average the observations if at all. "depth" will
+#' average observations over depth; "time" will aggregate to daily resolution.
+#' @param allowDuplicates If \code{FALSE}, remove duplicates using \code{unique}
+#' following simplification.
+#' @details Note the following behavior when averaging. The is.bdl column
+#' is also averaged, and therefore is no longer a logical vector, but a
+#' decimal on [0, 1] indicating what proportion of averaged observations were bdl.
+#' Some columns are dropped when averaging, namely the ones being averaged over,
+#' while one is added, giving the number of observations being averaged.
+#'
 #' @export
-wqp_simplifyConc <- function(wqpData) {
+wqp_simplifyConc <- function(wqpData, average = c("none", "depth", "time"),
+                             allowDuplicates = FALSE) {
+
+  average <- match.arg(average)
+
+  checks <- attr(wqpData, "checks")
+  neededChecks <- c("classes", "activity", "fraction", "units", "BDL")
+  if (length(setdiff(neededChecks, checks)) > 0) {
+    stop(paste("Please perform the following checks before simplifying:",
+               paste(neededChecks, collapse = ", ")))
+  }
+
   colmap <- c("Date" = "ActivityStartDate",
               "datetime" = "ActivityStartDateTime",
               "station" = "MonitoringLocationIdentifier",
@@ -637,11 +833,37 @@ wqp_simplifyConc <- function(wqpData) {
               "conc" = "ResultMeasureValue",
               "conc.units" = "ResultMeasure.MeasureUnitCode",
               "conc.flag" = "ResultStatusIdentifier",
+              "depth" = "ActivityDepthHeightMeasure.MeasureValue",
+              "depth.units" = "ActivityDepthHeightMeasure.MeasureUnitCode",
               "detlim" = "DetectionQuantitationLimitMeasure.MeasureValue",
               "is.bdl" = "is.bdl")
   out <- wqpData[colmap]
   names(out) <- names(colmap)
-  out
+
+  if (!allowDuplicates) {
+    nr1 <- nrow(out)
+    out <- unique(out)
+    nr2 <- nrow(out)
+    if (nr1 > nr2)
+      message(sprintf("Omitting %s duplicate rows.", nr1 - nr2))
+  }
+
+  if (average != "none") {
+    avgCols <- c("depth", "depth.units", "conc", "conc.flag", "is.bdl")
+    if (average == "time")
+      avgCols <- c(avgCols, "datetime")
+    keepCols <- setdiff(names(colmap), avgCols)
+    # print(keepCols)
+    # browser()
+    out <- out %>%
+      group_by_(.dots = keepCols) %>%
+      summarize_(conc = ~mean(conc),
+                 conc.flag = ~paste(conc.flag, collapse = ";"),
+                 is.bdl = ~mean(is.bdl),
+                 n_avg = ~n())
+  }
+
+  out <- wqp_setAttrs(out, attributes(wqpData))
 }
 
 #' Unsimplify wqp concentration data
@@ -666,8 +888,19 @@ wqp_complicateConc <- function(simpleConc) {
 
 #' Simplify wqp flow data
 #' @param wqpData processed WQP data result
+#' @param allowDuplicates If \code{FALSE}, remove duplicates using \code{unique}
+#' following simplification.
 #' @export
-wqp_simplifyFlow <- function(wqpData) {
+wqp_simplifyFlow <- function(wqpData, average = c("none", "time"),
+                             allowDuplicates = FALSE) {
+  average = match.arg(average)
+  checks <- attr(wqpData, "checks")
+  neededChecks <- c("units", "classes", "activity")
+  if (length(setdiff(neededChecks, checks)) > 0) {
+    stop(paste("Please perform the following checks before simplifying:",
+               paste(neededChecks, collapse = ", ")))
+  }
+
   colmap <- c("Date" = "ActivityStartDate",
               "datetime" = "ActivityStartDateTime",
               "station" = "MonitoringLocationIdentifier",
@@ -677,6 +910,25 @@ wqp_simplifyFlow <- function(wqpData) {
               "flow.flag" = "ResultStatusIdentifier")
   out <- wqpData[colmap]
   names(out) <- names(colmap)
+
+  if (average == "time") {
+    avgCols <- c("flow", "datetime", "flow.flag")
+    keepCols <- setdiff(names(colmap), avgCols)
+    out <- out %>%
+      group_by_(.dots = keepCols) %>%
+      summarize_(flow = ~mean(flow),
+                 flow.flag = ~paste(flow.flag, collapse = ";"),
+                 n_avg = ~n())
+  }
+
+  if (!allowDuplicates) {
+    nr1 <- nrow(out)
+    out <- unique(out)
+    nr2 <- nrow(out)
+    if (nr1 > nr2)
+      message(sprintf("Omitting %s duplicate rows.", nr1 - nr2))
+  }
+
   out
 }
 
@@ -696,8 +948,16 @@ wqp_mapStations <- function(wqpData){
 }
 
 #' Sets attributes of object to attributes only when such attributes aren't present in object already.
-wqp_setAttrs <- function(object, attributes) {
+wqp_setAttrs <- function(object, attributes, check = NULL) {
   toset <- attributes[setdiff(names(attributes), names(attributes(object)))]
+
   attributes(object) <- c(attributes(object), toset)
+
+  if (!is.null(check)) {
+    attr(object, "checks") <- unique(c(attr(object, "checks"), check))
+  }
+
   object
 }
+
+

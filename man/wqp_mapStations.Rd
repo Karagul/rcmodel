@@ -2,11 +2,11 @@
 % Please edit documentation in R/wqData.R
 \name{wqp_mapStations}
 \alias{wqp_mapStations}
-\title{Map wqpData}
+\title{Map wqpData monitoring stations}
 \usage{
 wqp_mapStations(wqpData)
 }
 \description{
-Map wqpData
+Map wqpData monitoring stations
 }
 

@@ -70,6 +70,41 @@ test_that("wqp unit check works", {
 
 })
 
+test_that("depthHeight are converted", {
+  data(aluminumData)
+  testdata <- aluminumData[1:3, ]
+  convto <- c("mg/l", "mg/kg")
+
+  depths <- runif(3)
+  depthUnits <- c("feet", "ft", "km")
+
+  testdata$ResultDepthHeightMeasure.MeasureValue <- depths
+  testdata$ActivityDepthHeightMeasure.MeasureValue <- depths
+  testdata$ActivityTopDepthHeightMeasure.MeasureValue <- depths
+  testdata$ActivityBottomDepthHeightMeasure.MeasureValue <- depths
+
+  testdata$ResultDepthHeightMeasure.MeasureUnitCode <- depthUnits
+  testdata$ActivityDepthHeightMeasure.MeasureUnitCode <- depthUnits
+  testdata$ActivityTopDepthHeightMeasure.MeasureUnitCode <- depthUnits
+  testdata$ActivityBottomDepthHeightMeasure.MeasureUnitCode <- depthUnits
+
+  newUnits <- c("m", "m", "m")
+  newDepths <- convertUnits(depths, from = depthUnits, to = "m")
+
+  checked <- wqp_checkDepth(testdata, units = "m")
+
+  expect_equal(checked$ResultDepthHeightMeasure.MeasureValue, newDepths$x)
+  expect_equal(checked$ActivityDepthHeightMeasure.MeasureValue, newDepths$x)
+  expect_equal(checked$ActivityTopDepthHeightMeasure.MeasureValue, newDepths$x)
+  expect_equal(checked$ActivityBottomDepthHeightMeasure.MeasureValue, newDepths$x)
+
+  expect_equal(checked$ResultDepthHeightMeasure.MeasureUnitCode, newUnits)
+  expect_equal(checked$ActivityDepthHeightMeasure.MeasureUnitCode, newUnits)
+  expect_equal(checked$ActivityTopDepthHeightMeasure.MeasureUnitCode, newUnits)
+  expect_equal(checked$ActivityBottomDepthHeightMeasure.MeasureUnitCode, newUnits)
+
+  # expect_warning(wqp_checkUnits(testdata)) # Why did I expect a warning?
+})
 
 test_that("wqp fraction check works", {
   data("aluminumData")
@@ -97,4 +132,54 @@ test_that("wqp detection limit check works", {
 })
 
 
+test_that("wqp_checkTZ converts all timezones", {
+  data("aluminumData")
+  testdata <- aluminumData
+  checked <- wqp_checkTZ(testdata)
 
+  expect_is(checked, "data.frame")
+
+  expect_equal(sum(is.na(checked$ActivityStartDateTime)),
+               0)
+  expect_equal(sum(is.na(checked$ActivityEndDateTime)),
+               0)
+  expect_equal(sum(format(checked$ActivityStartDateTime, "%Z") == "UTC"),
+               nrow(checked))
+  expect_equal(sum(format(checked$ActivityEndDateTime, "%Z") == "UTC"),
+               nrow(checked))
+
+})
+
+
+test_that("Simplification works as expected", {
+  data("nitrateData")
+  expect_error(wqp_simplifyConc(nitrateData))
+  testdata <- nitrateData %>%
+    wqp_checkClasses() %>%
+    wqp_checkActivity() %>%
+    wqp_checkFraction() %>%
+    wqp_checkUnits(convertTo = "mg/L", inconvertibles = "omit") %>%
+    wqp_checkBDL()
+
+  simp <- wqp_simplifyConc(testdata)
+  expect_is(simp, "data.frame")
+
+
+
+  simpsum <- wqp_simplifyConc(testdata, average = "time")
+  expect_lt(nrow(simpsum), nrow(simp))
+
+  data("no3Flow")
+  expect_error(wqp_simplifyFlow(no3Flow))
+  testdata <- no3Flow %>%
+    wqp_checkClasses() %>%
+    wqp_checkActivity() %>%
+    wqp_checkUnits()
+
+  qsimp <- wqp_simplifyFlow(testdata)
+  expect_is(qsimp, "data.frame")
+
+  qsimpsum <- wqp_simplifyFlow(testdata, average = "time")
+  expect_lt(nrow(qsimpsum), nrow(qsimp))
+
+})

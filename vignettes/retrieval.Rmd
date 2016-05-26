@@ -58,8 +58,7 @@ no3Data <- nitrateData %>%
   wqp_checkActivity() %>% 
   wqp_checkFraction() %>% 
   wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg"),
-                 inconvertibles = "omit") 
-no3Data <- no3Data %>% 
+                 inconvertibles = "omit") %>% 
   wqp_checkBDL()
 ```
 
