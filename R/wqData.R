@@ -217,8 +217,9 @@ convertUnits <- function(x, from, to, inconvertibles = c("preserve", "omit")) {
 validateUnits <- function(unit) {
   # unit <- tolower(unit)
   replacement <- c("cfs" = "ft3/s", "CFS" = "ft3/s",
-                   "gpm" = "gal/min",
-                   "mgd" = "Mgal/day", "MGD" = "Mgal/day")
+                   "gpm" = "gallon/min",
+                   "gal/min" = "gallon/min",
+                   "mgd" = "Mgallon/day", "MGD" = "Mgallon/day")
 
   matches <- match(unit, names(replacement))
   matchna <- is.na(matches)
@@ -507,7 +508,10 @@ wqp_checkBDL <- function(wqpData) {
   belowReportedLimit <- islt(out$ResultMeasureValue,
                              out$DetectionQuantitationLimitMeasure.MeasureValue)
   reportedBelowLimit <- out$ResultDetectionConditionText %in% nonDetectStrings
-  out$is.bdl <- belowReportedLimit | reportedBelowLimit
+  # browser()
+  out$is.bdl <- belowReportedLimit |
+    reportedBelowLimit |
+    out$ResultMeasureValue == 0 # Treat zeros as BDL, since these are concentrations
 
 
   # rows that have no useable detection limit info, yet are reported as BDL
@@ -524,6 +528,7 @@ wqp_checkBDL <- function(wqpData) {
 
   # set detection limit to maximum reported limit
   lookupDetLim <- function(wd) {
+    # browser()
     wd_smry <- wd %>%
       group_by_(~CharacteristicName,
                ~ResultSampleFractionText,
@@ -538,18 +543,19 @@ wqp_checkBDL <- function(wqpData) {
                     MonitoringLocationIdentifier %in% wd_smry$MonitoringLocationIdentifier) %>%
       group_by_(~CharacteristicName,
                ~ResultSampleFractionText,
-               ~MonitoringLocationIdentifier) %>%
-      summarize(maxdl = max(DetectionQuantitationLimitMeasure.MeasureValue),
-                units = unique(DetectionQuantitationLimitMeasure.MeasureUnitCode)) %>% # May need better way to check units
+               ~MonitoringLocationIdentifier,
+               ~ResultMeasure.MeasureUnitCode) %>%
+      summarize(maxdl = max(DetectionQuantitationLimitMeasure.MeasureValue)) %>% # May need better way to check units
       ungroup()
     # replace missing values with maximum reported
     wd1 <- left_join(wd, wqp_maxdl, by = c("MonitoringLocationIdentifier",
-                                           "CharacteristicName",
-                                           "ResultSampleFractionText")) %>%
+                       "CharacteristicName",
+                       "ResultSampleFractionText",
+                       "ResultMeasure.MeasureUnitCode")) %>%
       mutate(DetectionQuantitationLimitMeasure.MeasureValue = maxdl,
-             DetectionQuantitationLimitMeasure.MeasureUnitCode = units,
+             DetectionQuantitationLimitMeasure.MeasureUnitCode = ResultMeasure.MeasureUnitCode,
              DetectionQuantitationLimitTypeName = "Inferred from maximum reported in dataset") %>%
-      select(-maxdl, -units)
+      select(-maxdl)
     wd1
   }
 
@@ -736,6 +742,8 @@ timezoneLookup <- function(lat, lon, statecode, geonamesUser) {
 #' @param wqpData data.frame returned by readWQPData
 #' @importFrom httr GET
 #' @importFrom jsonlite fromJSON
+#' @export
+
 wqp_checkTZ <- function(wqpData, geonamesUser = "markwh") {
 
 
@@ -798,6 +806,23 @@ wqp_checkTZ <- function(wqpData, geonamesUser = "markwh") {
 }
 
 
+
+#' Check for and remove duplicates in a WQP data.frame
+#'
+#' unlike \code{unique}, this preserves attributes and a record of the check.
+#' @param wqpData data.frame returned by readWQPData
+#' @export
+
+wqp_checkDuplicates <- function(wqpData) {
+  out <- wqpData
+
+  out <- unique(out)
+  if (nrow(out) < nrow(wqpData))
+    message(sprintf("Removing %s duplicate rows", nrow(wqpData) - nrow(out)))
+
+  out <- wqp_setAttrs(out, attributes(wqpData), check = "duplicates")
+}
+
 # Simplify wqp data structures --------------------------------------------
 
 #' Simplify wqp concentration data
@@ -814,9 +839,11 @@ wqp_checkTZ <- function(wqpData, geonamesUser = "markwh") {
 #'
 #' @export
 wqp_simplifyConc <- function(wqpData, average = c("none", "depth", "time"),
-                             allowDuplicates = FALSE) {
+                             allowDuplicates = FALSE,
+                             redundantUnits = c("purge", "keep")) {
 
   average <- match.arg(average)
+  redundantUnits <- match.arg(redundantUnits)
 
   checks <- attr(wqpData, "checks")
   neededChecks <- c("classes", "activity", "fraction", "units", "BDL")
@@ -857,10 +884,21 @@ wqp_simplifyConc <- function(wqpData, average = c("none", "depth", "time"),
     # browser()
     out <- out %>%
       group_by_(.dots = keepCols) %>%
-      summarize_(conc = ~mean(conc),
+      summarize_(conc = ~mean(conc, na.rm = TRUE),
                  conc.flag = ~paste(conc.flag, collapse = ";"),
                  is.bdl = ~mean(is.bdl),
                  n_avg = ~n())
+  }
+  # browser()
+  if (redundantUnits == "purge") {
+    nr1 <- nrow(out)
+    out <- out %>%
+      group_by_(~station, ~char, ~frac) %>%
+      filter_(~conc.units == Mode(conc.units)) %>%
+      ungroup()
+    nr2 <- nrow(out)
+    if (nr1 > nr2)
+      message(sprintf("Omitting %s rows with redundant units.", nr1 - nr2))
   }
 
   out <- wqp_setAttrs(out, attributes(wqpData))
@@ -911,15 +949,12 @@ wqp_simplifyFlow <- function(wqpData, average = c("none", "time"),
   out <- wqpData[colmap]
   names(out) <- names(colmap)
 
-  if (average == "time") {
-    avgCols <- c("flow", "datetime", "flow.flag")
-    keepCols <- setdiff(names(colmap), avgCols)
-    out <- out %>%
-      group_by_(.dots = keepCols) %>%
-      summarize_(flow = ~mean(flow),
-                 flow.flag = ~paste(flow.flag, collapse = ";"),
-                 n_avg = ~n())
-  }
+  # Omit NA flow values
+  nr1 <- nrow(out)
+  out <- out[!is.na(out[["flow"]]) & out[["flow"]] != 0,]
+  nr2 <- nrow(out)
+  if (nr1 > nr2)
+    message(sprintf("Omitting %s rows with zero or missing flow data.", nr1 - nr2))
 
   if (!allowDuplicates) {
     nr1 <- nrow(out)
@@ -929,6 +964,17 @@ wqp_simplifyFlow <- function(wqpData, average = c("none", "time"),
       message(sprintf("Omitting %s duplicate rows.", nr1 - nr2))
   }
 
+  if (average == "time") {
+    avgCols <- c("flow", "datetime", "flow.flag")
+    keepCols <- setdiff(names(colmap), avgCols)
+    out <- out %>%
+      group_by_(.dots = keepCols) %>%
+      summarize_(flow = ~mean(flow, na.rm = TRUE),
+                 flow.flag = ~paste(flow.flag, collapse = ";"),
+                 n_avg = ~n())
+  }
+
+  out <- wqp_setAttrs(out, attributes(wqpData))
   out
 }
 
@@ -960,4 +1006,48 @@ wqp_setAttrs <- function(object, attributes, check = NULL) {
   object
 }
 
+
+#' Make datasets for use in rcgam and similar functions
+#'
+#' Returns a list of rcData objects.
+#'
+#' @param simpleConc a data.frame returned by wqp_simplifyConc
+#' @param simpleFlow a data.frame returned by wqp_simplifyFlow
+#' @param bdl.threshold Days with greater a larger fraction than bdl.threshold bdl values will be marked as bdl.
+makeRcData <- function(simpleConc, simpleFlow, bdl.threshold = 0,
+                       type = c("rcData", "raw")) {
+
+  type <- match.arg(type)
+
+  rawdat <- simpleConc %>%
+    dplyr::inner_join(simpleFlow, by = c("Date", "station")) %>%
+    mutate_(is.bdl = ~is.bdl > bdl.threshold)
+
+  # Flow moments for conversion
+  qsmry <- simpleFlow %>%
+    group_by(station) %>%
+    summarize_(qbar = ~mean(log(flow), na.rm = TRUE),
+               qsd  = ~sd(log(flow), na.rm = TRUE),
+               n = ~sum(!is.na(flow)))
+
+  rcid <- rawdat %>%
+    transmute_(~station, ~char, ~frac, ~conc.units,
+               rcID = ~make.names(paste(station, char, frac,
+                                        conc.units, sep = "_"))) %>%
+    left_join(qsmry, by = "station")
+
+  rawlist <- split(rawdat, f = rcid$rcID)
+
+  # flow moments by dataset ID
+  qMoms <- names(rawlist) %>%
+    data.frame(stringsAsFactors = FALSE) %>%
+    setNames("rcID") %>%
+    left_join(unique(rcid), by = "rcID")
+  # browser()
+  out <- Map(makeModelData, rawData = rawlist,
+             qbar = qMoms$qbar, qsd = qMoms$qsd)
+  if (type == "raw")
+    out <- rawlist
+  out
+}
 

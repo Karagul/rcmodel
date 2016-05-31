@@ -33,6 +33,7 @@ loadest.form <- function(number) {
 #' @param fun.select function to use to select between models
 #' @param which.select Either min or max, tells which value of select funciton is best
 #' @importFrom assertthat assert_that
+#' @export
 loadest_cal <- function(data, modno = 0, fun.select = AIC, which.select = min) {
 
   # calibrate
@@ -69,6 +70,7 @@ loadest_check <- function(object) {
 #' @param object a rcgam object
 #' @param preddata either a rcData object or a data.frame that can be converted to one via makePredData
 #' @param what either "load" for load (kg/day) or "conc" for concentration (mg/L)
+#' @export
 loadest_pred <- function(object, preddata, flow = NULL,  what = c("load", "conc"),
                          ...) {
 

@@ -53,13 +53,16 @@ dim(nitrateData)
 ### Perform checks
 
 ```{r}
+library(dplyr)
+
 no3Data <- nitrateData %>% 
   wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkFraction() %>% 
   wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg"),
                  inconvertibles = "omit") %>% 
-  wqp_checkBDL()
+  wqp_checkBDL() %>% 
+  wqp_checkDuplicates()
 ```
 
 
@@ -70,59 +73,43 @@ flowsites <- unique(no3Data$MonitoringLocationIdentifier)
 no3Flow <- timeit(getFlowData(flowsites, n = 100))
 
 qData <- no3Flow %>% 
+  wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkUnits(convertTo = "cfs") %>% 
-  wqp_checkBDL()
-
+  wqp_checkBDL() %>% 
+  wqp_checkDuplicates()
 ```
 
-Get single flow observation for each day.
+Simplify to daily resolution.
 
 ```{r}
-nPerDay <- no3Data %>% 
-  group_by(MonitoringLocationIdentifier,
-           CharacteristicName, ActivityStartDate,
-           ResultMeasure.MeasureUnitCode,
-           ResultSampleFractionText) %>% 
-  summarize(n = n(), minq = min(ResultMeasureValue), maxq = max(ResultMeasureValue)) %>% 
-  ungroup() %>% 
-  arrange(desc(n))
-print(nPerDay, n = 100)
-
-qData %>% 
-  filter(MonitoringLocationIdentifier == "211WVOWR-P-004-0002") %>% 
-  transmute(Date = ActivityStartDate, datetime = ActivityStartDateTime,
-            value = ResultMeasureValue, units = ResultMeasure.MeasureUnitCode) %>% 
-  arrange(datetime) %>% 
-  ggplot(aes(x = datetime, y = value)) +
-  geom_point()
-
-qData %>% 
-  filter(MonitoringLocationIdentifier == "USGS-01639000",
-         # ResultMeasure.MeasureUnitCode == "mg/l",
-         # ResultSampleFractionText == "Dissolved",
-         ActivityStartDate == "1993-12-05") %>%
-  transmute(Date = ActivityStartDate, datetime = ActivityStartDateTime,
-            value = ResultMeasureValue, units = ResultMeasure.MeasureUnitCode) %>% 
-  arrange(datetime) %>% 
-  ggplot(aes(x = datetime, y = value)) +
-  geom_point()
-
+no3Simple <- wqp_simplifyConc(no3Data, average = "time")
+qSimple <- wqp_simplifyFlow(qData, average = "time")
 
 ```
 
 
 ### Convert to rcData
 
+unlike the wqp datasets, each rcData object is specific to a location and characteristic. Therefore, the result of converting a simplified wqp dataset to rcData will be a list of rcData objects.
+
 ```{r}
-no3Simple <- wqp_simplifyConc(no3Data)
-qSimple <- wqp_simplifyFlow(qData)
+rcDataList <- makeRcData(simpleConc = no3Simple, simpleFlow = qSimple)
 
-glimpse(no3Simple)
+nobs <- sapply(rcDataList, nrow)
+nbdl <- sapply(rcDataList, function(df) sum(df$is.bdl))
 
-rawdat <- full_join()
+rcDataList <- rcDataList[nobs >= 30 & nbdl == 0]
 
-rcd <- makeModelData()
 ```
 
+Now we can easily make rating curve models using these datasets.
 
+```{r}
+no3Models <- lapply(rcDataList, loadest_cal)
+length(no3Models)
+
+sapply(no3Models, markstats::R2) %>% summary
+```
+
+OK! Calling it a day. Git commit and quit. 

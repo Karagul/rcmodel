@@ -5,7 +5,7 @@
 \title{Simplify wqp concentration data}
 \usage{
 wqp_simplifyConc(wqpData, average = c("none", "depth", "time"),
-  allowDuplicates = FALSE)
+  allowDuplicates = FALSE, redundantUnits = c("purge", "keep"))
 }
 \arguments{
 \item{wqpData}{processed WQP data result}

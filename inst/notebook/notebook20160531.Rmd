@@ -1,0 +1,111 @@
+---
+title: "notebook20160531"
+author: "Mark Hagemann"
+date: "May 31, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Improving retrieval vignette.
+
+- simplifying data
+- Combine wqpData to rcData
+
+
+Tracking down a warning when simplifying no3Data to purge redundant units.
+
+- I think it comes from the Mode function.
+- text is `In c("mg/l", "mg/l as N", "mg/l", "mg/l as N", "mg/l",  ... :
+  longer object length is not a multiple of shorter object length`
+
+```{r}
+debug(Mode)
+no3Simple <- wqp_simplifyConc(no3Data, average = "time")
+```
+
+OK, fixed that. It was improperly specified formula for mutate_ (NSE stuff)
+
+Now I'm testing out the creation of rcData objects via makeRcData(simpleConc, simpleFlow)
+
+```{r}
+rcDataList <- makeRcData(simpleConc = no3Simple, simpleFlow = qSimple)
+rawDataList <- makeRcData(simpleConc = no3Simple, simpleFlow = qSimple, type = "raw")
+length(rcDataList)
+nobs <- sapply(rcDataList, nrow)
+nbdl <- sapply(rcDataList, function(df) sum(df$is.bdl))
+
+sum(nobs > 30 & nbdl == 0)
+min(which(nobs >= 30))
+
+rcDataList <- rcDataList[nobs >= 30 & nbdl == 0]
+rawDataList <- rawDataList[nobs >= 30 & nbdl == 0]
+
+
+foo <- loadest_cal(rcDataList[[1]])
+rcDataList[[1]]
+glimpse(rawDataList[[1]])
+rawDataList[[1]] %>% 
+  plot(conc ~ flow, .)
+
+
+makeModelData(rawDataList[[1]])
+```
+
+Need to debug makeModelData. For some reason it's giving NaN for c.
+
+```{r}
+debug(makeModelData)
+makeModelData(rawDataList[[1]])
+```
+
+Hmm. Problem is zeros in concentration data. Not very likely, especially with nitrate. Should treat these as bdl. 
+
+- is there any detection limit info?
+
+```{r}
+rawDataList[[1]]
+
+no3Data %>% 
+  filter(MonitoringLocationIdentifier == "MDEDAT04_WQX-SID0112",
+         CharacteristicName == "Nitrate",
+         ResultSampleFractionText == "Dissolved") %>% 
+  glimpse()
+```
+
+None. Could put artificial detection limit at minimum nonzero observation. In any case, zeros should be treated as BDL. 
+
+OK, fixed that--need to just omit datasets with zeros for now. But now I'm getting NaN flow values (in the *raw* data)
+
+```{r}
+
+glimpse(rawDataList[[1]])
+
+qData %>% 
+  filter(MonitoringLocationIdentifier == "USGS-01573750",
+         ActivityStartDate == "2002-09-19") %>% 
+  glimpse()
+```
+
+Fixed that too. 
+
+STILL getting not enough data complaint.
+
+```{r}
+rawDataList[[3]] %>% 
+  select(conc, flow) %>% 
+  print(n = 50)
+```
+
+Which is USGS-01591510?
+
+```{r}
+at1 <- attr(no3Data, "siteInfo")
+
+at1 %>% 
+  filter(MonitoringLocationIdentifier == "USGS-01591510")
+```
+
+I should get rid of zero flow like I did NA flows. For the same reason, really (since NAs are BDLs) 
