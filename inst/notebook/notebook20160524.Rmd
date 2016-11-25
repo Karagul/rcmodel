@@ -1,0 +1,202 @@
+---
+title: "notebook20160524"
+author: "Mark Hagemann"
+date: "May 24, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Making some more wqp functions.
+
+1. Map stations
+
+```{r}
+data("aluminumData")
+library(leaflet)
+library(markstats)
+
+names(attributes(aluminumData))
+
+sites <- attr(aluminumData, "siteInfo")
+
+
+str(sites, 1)
+
+l1 <- leaflet() %>% 
+  addTiles() %>% 
+  addRectangles(lng1 = -80, lat1 = 38, lng2 = -77, lat2 = 40)
+
+l1 %>% 
+  addCircleMarkers(lng = ~dec_lon_va, lat = ~dec_lat_va, data = sites)
+
+facsum(sites$MonitoringLocationTypeName)
+
+
+wqp_mapStations <- function(wqpData)
+```
+
+Chasing down a problem with wqp_checkUnits. data.frame index replacement is failing for reasons I don't understand.
+
+```{r}
+# modified output so no3Data is now a list of intermediate objects created within wqp_checkUnits function.
+
+names(no3Data)
+
+no3Data <- nitrateData %>% 
+  wqp_checkClasses() %>% 
+  wqp_checkActivity() %>% 
+  wqp_checkFraction() %>% 
+  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg"),
+                 inconvertibles = "omit")
+
+foo <- no3Data$out
+dim(foo)
+
+with(no3Data, foo[badrows, colind] <- badunits) # same error
+
+sum(no3Data$badrows)
+
+dim(foo)
+sum(no3Data$badrows)
+summary(no3Data$badrows)
+no3Data$colind
+with(no3Data, length(foo[badrows, colind]))
+```
+
+Meanwhile the same operation appears to work with mtcars
+
+```{r}
+bar <- mtcars
+
+logrows <- sample(c(TRUE, FALSE), 32, replace = TRUE)
+bar[logrows, 5]
+bar[logrows, 5] <- 1:sum(logrows)
+bar
+```
+
+Try attaching instead
+
+```{r}
+attach(no3Data)
+
+sum(badrows)
+foo[which(badrows), colind] <- 1:sum(badrows)
+
+```
+
+Using numeric indices instead of logical (i.e. using `which`) appears to work.
+
+WQP is now down for maintenance. What does the url call return?
+
+```{r}
+foo <- httr::GET("http://www.waterqualitydata.us/Result/search?bBox=-80%2C38%2C-77%2C40&siteType=Stream&characteristicName=Aluminum&sampleMedia=Water&sorted=no&mimeType=tsv")
+
+httr::content(foo, as = "parsed")
+```
+
+
+### Convert to rcData
+
+```{r}
+no3Simple <- wqp_simplifyConc(no3Data)
+qSimple <- wqp_simplifyFlow(qData)
+
+intersect(names(no3Simple), names(qSimple))
+
+rawdat1 <- full_join(no3Simple, qSimple, by = c("Date", "datetime", "station"))
+summary(rawdat1)
+
+```
+
+What to do when wq data is reported at higher time resolution than flow data? 
+
+- use daily average?
+- average wq observations for that day
+- Use temporally nearest flow observation
+- omit these data
+
+
+
+### Scoping of duplicate rows
+
+```{r}
+compareDuplicateFlow <- function(simpleData, origData, which = NULL) {
+  
+  dupinds <- which(duplicated(simpleData))
+  
+  if(is.null(which))
+    which <- 1:length(dupinds)
+  dups1 <- simpleData[dupinds[which], ] %>% 
+    split(f = rownames(.))
+  
+  isSame <- function(data, row) {
+    data %>% 
+      filter(ActivityStartDate == row[["Date"]],
+           MonitoringLocationIdentifier == row[["station"]],
+           ResultMeasureValue == row[["flow"]],
+           ResultStatusIdentifier == row[["flow.flag"]],
+           ActivityStartDateTime == row[["datetime"]]) %>% 
+      mutate(difRows = paste(whichHasDifs(.), collapse = "; "))
+  }
+  
+  out <- lapply(dups1, isSame, data = origData) %>% 
+    bind_rows()
+  out
+}
+
+whichHasDifs <- function(df) {
+  difinds <- vapply(df, function(col) length(unique(col)) > 1, logical(1))
+  names(df)[difinds]
+}
+
+dupFlow <- compareDuplicateFlow(qSimple, qData)
+glimpse(dupFlow)
+summary(as.factor(dupFlow$difRows)) %>% sort()
+
+dupFlow %>% 
+  filter(grepl("DepthHeight", difRows)) %>% 
+  glimpse()
+
+dupFlow %>% 
+  filter(grepl("Media", difRows)) %>% 
+  glimpse()
+
+dupFlow %>% 
+  filter(grepl("Comment", difRows)) %>% 
+  `[[`("ActivityCommentText")
+
+dupFlow %>% 
+  filter(grepl("PCode", difRows)) %>% 
+  glimpse()
+
+```
+
+Flow data shouldn't have depth height measure.
+
+Flow media shouldn't be "other". 
+
+Mean daily flow shouldn't have a time that's in the middle of the afternoon. 
+
+Also, datetime appears to be incorrectly representing time zones. The time portion of it doesn't equal the "ActivityStartTime.Time" value.
+
+- check this out in the original data. 
+
+```{r}
+timetest <- nitrateData %>% 
+  filter(!is.na(ActivityStartTime.Time)) %>% 
+  select(ActivityStartTime.Time,
+         ActivityStartTime.TimeZoneCode,
+         ActivityStartDateTime) %>% 
+  filter(!is.na(ActivityStartTime.TimeZoneCode))
+
+timetest
+
+timetest$ActivityStartDateTime
+```
+
+So ActivityStartDateTime is always in UTC. Good to know. 
+
+What I see resulting from this: No important differences are actually represented. 

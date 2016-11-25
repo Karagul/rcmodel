@@ -103,7 +103,8 @@ test_that("subsetting preserves attributes in rcData objects", {
 
 
 test_that("load unit conversion works", {
-  expect_less_than(abs(calcLoad(flow = 1, conc = 1) - 3600 * 24 * 28.3168 / 1000000),
+  expect_lt(abs(loadTS(flow = 1, conc = 1, Sys.Date())$load -
+                  3600 * 24 * 28.3168 / 1000000),
                    0.0001)
 })
 
@@ -112,8 +113,8 @@ test_that("custom arguments to makeModelData behave as intended", {
 
   dat1 <- makeModelData(Phosphorus)
   dat2 <- makeModelData(Phosphorus, qbar = 3, qsd = 0.8)
-  expect_more_than(abs(mean(dat2$q)), abs(mean(dat1$q)))
-  expect_more_than(abs(sd(dat2$q) - 1), abs(sd(dat1$q) - 1))
+  expect_gt(abs(mean(dat2$q)), abs(mean(dat1$q)))
+  expect_gt(abs(sd(dat2$q) - 1), abs(sd(dat1$q) - 1))
 
 })
 
@@ -122,8 +123,8 @@ test_that("sharm behaves correctly", {
   date2 <- date1 - 365L
   date3 <- date1 - 366L / 2L
 
-  expect_less_than(max(abs(sharm(date1) - sharm(date2))), 0.02)
-  expect_less_than(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.04)
-  expect_less_than(max(abs(sharm(date1, degree = 2)[1, c(2, 4)] -
+  expect_lt(max(abs(sharm(date1) - sharm(date2))), 0.02)
+  expect_lt(max(abs(sharm(date1, degree = 2) - sharm(date2, degree = 2))), 0.04)
+  expect_lt(max(abs(sharm(date1, degree = 2)[1, c(2, 4)] -
                              sharm(date3, degree = 2)[1, c(2, 4)])), 0.04)
 })

@@ -1,0 +1,110 @@
+---
+title: "notebook20160525"
+author: "Mark Hagemann"
+date: "May 25, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+WQP should be done updating. Redo retrievals and resave objects.
+
+- nope, looks like it's running late.
+
+Meanwhile, average observations over depth
+
+```{r}
+no3Data %>% 
+  filter(!is.na(ResultDepthHeightMeasure.MeasureValue),
+         ResultDepthHeightMeasure.MeasureValue != 0) %>% 
+  glimpse
+
+```
+
+So nothing that isn't at zero depth.
+
+```{r}
+qData %>% 
+  filter(!is.na(ResultDepthHeightMeasure.MeasureValue),
+         ResultDepthHeightMeasure.MeasureValue != 0) %>% 
+  glimpse
+```
+
+But should be looking at ActivityDepth
+
+```{r}
+hasdepth <- no3Data %>% 
+  filter(!is.na(ActivityDepthHeightMeasure.MeasureValue),
+         ActivityDepthHeightMeasure.MeasureValue != 0)
+
+glimpse(hasdepth)
+
+```
+
+How is this defined? I don't believe they're making observations in a river at 18m depth.
+
+
+```{r}
+hasdepth %>% 
+  group_by(MonitoringLocationIdentifier) %>% 
+  summarize(mindepth = min(ActivityDepthHeightMeasure.MeasureValue),
+            maxdepth = max(ActivityDepthHeightMeasure.MeasureValue),
+            meandepth = mean(ActivityDepthHeightMeasure.MeasureValue),
+            n = n()) %>% 
+  arrange(desc(maxdepth))
+
+summary(as.factor(hasdepth$ActivityDepthHeightMeasure.MeasureUnitCode))
+
+```
+
+So I'll need to convert the depth in checkUnits as well. 
+
+
+```{r}
+summary(as.factor(hasdepth$ActivityDepthAltitudeReferencePointText))
+```
+
+That's DONE.
+
+### Function to check timezones
+
+```{r}
+summary(as.factor(no3Data$ActivityStartTime.TimeZoneCode))
+
+no3Data %>% 
+  group_by(ActivityStartTime.TimeZoneCode) %>% 
+  summarize(numna = sum(is.na(ActivityStartTime.Time)),
+            numReported = n() - numna)
+
+```
+
+So a large chunk is reported but has no timezone.
+
+```{r}
+no3Data %>% 
+  filter(is.na(ActivityStartTime.TimeZoneCode),
+         !is.na(ActivityStartTime.Time)) %>% 
+  mutate(starttime = as.factor(ActivityStartTime.Time)) %>% 
+  summary()
+
+qData %>% 
+  filter(is.na(ActivityStartTime.TimeZoneCode),
+         !is.na(ActivityStartTime.Time)) %>% 
+  mutate(starttime = as.factor(ActivityStartTime.Time)) %>% 
+  summary()
+  
+```
+
+All the data missing timezones are reported as 00:00:00. 
+
+- Since this is misleading, remove this information
+- How to treat datetime column? options:
+    1. remove these rows (make NA)
+    2. report start and end time as separate columns
+    3. encode the information that time is unknown.
+
+I like option 2 the best. Use ActivityEndDateTime.
+
+

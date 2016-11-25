@@ -1,0 +1,195 @@
+---
+title: "Example Data Retrieval Workflow"
+author: "Mark Hagemann"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+### Get input parameters
+
+ - where (bbox)
+ - what (characteristicName, characteristicType)
+
+
+
+```{r}
+bb1 <- bbox(-80, 38, -77, 40)
+
+inputChars <- charNameLookup("alumin")
+flowChars <- bind_rows(charNameLookup("flow"),
+                       charNameLookup("discharge"))
+
+```
+
+
+### Make WQP request
+
+```{r}
+aluminumData <- getConcData(bBox = bb1, charname = inputChars$value)
+Sys.time() #started at 6:27
+
+```
+
+### Get flow data
+
+```{r}
+?readNWISdv
+unique(aluminumData$MonitoringLocationIdentifier)
+
+getFlowData <- function(siteid) {
+  flowchars <- c("Flow", "Flow rate, instantaneous",
+                 "Flow runoff", "Flow, runoff", "Storm water flow",
+                 "Stream flow, instantaneous", "Stream flow, mean. daily",
+                 "Discharge, River/Stream")
+  out <- try(getConcData(siteid = siteid, charname = flowchars))
+  out
+}
+
+fd1 <- getFlowData(aluminumData$MonitoringLocationIdentifier[100])
+fd2 <- readWQPdata(siteid = aluminumData$MonitoringLocationIdentifier[101])
+
+flowData <- lapply(unique(aluminumData$MonitoringLocationIdentifier), 
+                   getFlowData) %>% 
+  setNames(unique(aluminumData$MonitoringLocationIdentifier))
+
+nullFlows <- sapply(flowData, is.null)
+errorFlows <- sapply(flowData, is, "try-error")
+
+flowData_good <- flowData[!nullFlows & !errorFlows]
+flowData_bound <- flowData_good %>% 
+  lapply(wqp_checkClasses) %>% 
+  bind_rows()
+
+nFlowVals <- sapply(flowData_good, nrow)
+summary(nFlowVals)
+
+flowUnits <- lapply(flowData_good, function(x) unique(x$ResultMeasure.MeasureUnitCode))
+which.max(sapply(flowUnits, length))
+flowUnits[3]
+unique(unlist(flowUnits))
+
+# What's g/sec about?
+which(sapply(flowUnits, function(x) x[1] == "g/sec"))
+
+flowData_good[[393]] %>% glimpse
+
+
+flowSDs <- vapply(flowData, function(x) x$MeasureValue)
+```
+
+Get single flow observation for each day.
+
+```{r}
+maxPerDay <- function(df) {
+  max(summary(as.factor(df$ActivityStartDate)))
+  which.max(summary(as.factor(df$ActivityStartDate)))
+  
+}
+df <- flowData_good[[3]]
+df[df$ActivityStartDate == "2008-06-16", "ActivityTypeCode"]
+```
+
+Some are quality control replicates
+
+```{r}
+lapply(flowData_good, function(x) unique(x$ActivityTypeCode)) %>% 
+  unlist %>% 
+  as.factor() %>% 
+  summary()
+```
+
+Add to workflow the omission of "quality control" activity types.
+
+```{r}
+
+all(sapply(flowData_good, ncol) == 65)
+
+#' Takes an object returned by readWQPData (or getConcData) and returns an
+#' object of class rcData
+#'
+wqpToRcData <- function(concData, flowData) {
+  
+  knownTypes <- c("Sample-Routine", "Sample", "Not determined",
+                  "Field Msr/Obs", "Sample-Composite Without Parents")
+  
+  # Omit quality control samples
+  concData <- concData[!grepl("Quality Control", concData$ActivityTypeCode), ]
+  unrecTypes_conc <- setdiff(concData$ActivityTypeCode, knownTypes)
+  if(length(unrecTypes_conc) > 0)
+    warning(paste("Unknown activity types present in conc data:", 
+                  paste(unrecTypes_conc, collapse = "; ")))
+  flowData <- flowData[!grepl("Quality Control", flowData$ActivityTypeCode), ]
+  unrecTypes_flow <- setdiff(flowData$ActivityTypeCode, knownTypes)
+  if(length(unrecTypes_flow) > 0)
+    warning(paste("Unknown activity types present in flow data:", 
+                  paste(unrecTypes_flow, collapse = "; ")))
+
+  # Make sure all columns are accounted for
+  # Calculate BDLs
+  
+}
+
+
+```
+
+
+
+### Convert to rcData
+
+1. Make preliminary data.frame with columns Date, flow, flow.units, conc, conc.units, is.bdl
+
+
+```{r}
+
+rcDatas <- lapply()
+```
+
+
+### Fix getConcData to always give same columns and classes DONE. Made wqp_checkClasses function
+
+```{r}
+classDF <- function(df) 
+  as.data.frame(lapply(df, function(obj) paste(class(obj), collapse = ";")))
+classes <- lapply(flowData_good, classDF) %>% 
+  bind_rows()
+
+glimpse(classes)
+dim(classes)
+dim(unique(classes))
+
+glimpse(unique(classes))
+
+datecols <- names(aluminumData)[grepl("Date$", names(aluminumData))]
+
+notDate <- sapply(flowData_good, function(df) class(df[[datecols[4]]]) != "Date") %>% 
+  which()
+notDate
+
+```
+
+### Deal with units
+
+```{r}
+unique(aluminumData$ResultMeasure.MeasureUnitCode)
+# Which are in percent?
+
+which(aluminumData$ResultMeasure.MeasureUnitCode == "%")
+aluminumData[10330, ] %>% glimpse
+dataRetrieval::pCodeToName %>% filter(parm_cd == "30221")
+
+which(aluminumData$ResultMeasure.MeasureUnitCode == "mg/kg")
+aluminumData[3430, ] %>% glimpse
+dataRetrieval::pCodeToName %>% filter(parm_cd == "01108")
+
+# So is the problem bed sediment?
+aluminumData$ResultSampleFractionText %>% unique
+
+```
+
+Make function convertToMg_L 
+

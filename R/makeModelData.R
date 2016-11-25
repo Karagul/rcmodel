@@ -35,9 +35,9 @@ makeModelData.data.frame <- function(rawData, model = NULL,
 
   absentCols <- c("c", "q", "doy", "time")
   sames <- intersect(absentCols, names(rawData))
-  if(length(sames) > 0)
-    warning(paste("The following columns will be overwritten:",
-                  paste(sames, collapse = ", ")))
+  # if(length(sames) > 0)
+  #   warning(paste("The following columns will be overwritten:",
+  #                 paste(sames, collapse = ", ")))
 
 
   qunits = as.character(unique(rawData[["flow.units"]]))

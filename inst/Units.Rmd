@@ -1,0 +1,37 @@
+---
+title: "Unit Conversion"
+author: "Mark Hagemann"
+date: "May 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Herein I document the tribulations of unit conversion, specifically in the context of hydrology/water-quality data, such as that provided in the Water Quality Portal (WQP)
+
+
+## Non-standard units
+
+One issue that arises when relying on a general-purpose unit conversion platform (like udunits) is that it may not be comprehensive. Units are often context-dependent. For example, when dealing with concentration data, parts per billion (ppb) is a perfectly acceptable unit for our intents and purposes, even though it is technically a ratio (part / billion parts, i.e. unitless) and not concentration (mass per volume). Meanwhile, we seldom want ppb data to be converted to percent data, even though this is technically possible. Percent data often represent things like the volatile fraction of organic matter, which is not a concentration as it ignores the water matrix altogether. Other units are not recognized, either because they are contrived ("natural turbidity units") or improperly abbreviated ("CFS" instead of "ft3/s").
+
+On the other hand, udunits is extraordinarily capable. For example all of the following work:
+
+```{r}
+ud.is.parseable("acre-feet")
+ud.is.parseable("acre*feet")
+ud.is.parseable("acrefeet")
+ud.is.parseable("acre feet")
+ud.is.parseable("acre foot")
+```
+
+Unfortunately, "acre-foots" does not work :)
+
+
+When applying unit conversions to real water-quality data, I am faced with the problem of how to treat conversions that udunits doesn't recognize. Several options are:
+
+1. Return NA, report the unit I attempted to convert to
+2. Return NA, report the original units
+3. Return original value and original units, issue warning
+4. Throw error. 

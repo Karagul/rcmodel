@@ -27,12 +27,12 @@ test_that("rclm can predict using raw data and subsets thereof", {
 test_that("predictions are unbiased", {
   data(Phosphorus)
 mod2 = rclm(c ~ q + sharm(Date) + time, Phosphorus)
-  expect_less_than(abs(mean(predict(mod2, smear = TRUE)$fit) - mean(Phosphorus$conc)),
+  expect_lt(abs(mean(predict(mod2, smear = TRUE)$fit) - mean(Phosphorus$conc)),
                    .Machine$double.eps)
-  expect_more_than(abs(mean(predict(mod2, smear = FALSE)$fit) - mean(Phosphorus$conc)),
+  expect_gt(abs(mean(predict(mod2, smear = FALSE)$fit) - mean(Phosphorus$conc)),
                    .Machine$double.eps)
 
-  expect_less_than(abs(mean(predict(mod2, retrans = FALSE, smear = FALSE)$fit)),
+  expect_lt(abs(mean(predict(mod2, retrans = FALSE, smear = FALSE)$fit)),
                    .Machine$double.eps)
 })
 
@@ -51,13 +51,13 @@ test_that("conditional samples are correct", {
   q10 <- markstats::condlSample(mod1, quantile = 0.1)
   q90 <- markstats::condlSample(mod1, quantile = 0.9)
 
-  expect_less_than(mean(q10), mean(rc_synth$conc))
-  expect_more_than(mean(q90), mean(rc_synth$conc))
+  expect_lt(mean(q10), mean(rc_synth$conc))
+  expect_gt(mean(q90), mean(rc_synth$conc))
 
-  expect_less_than(sum(q10 > rc_synth$conc), 30)
-  expect_more_than(sum(q10 > rc_synth$conc), 19)
-  expect_less_than(sum(q90 < rc_synth$conc), 30)
-  expect_more_than(sum(q90 < rc_synth$conc), 19)
+  expect_lt(sum(q10 > rc_synth$conc), 30)
+  expect_gt(sum(q10 > rc_synth$conc), 19)
+  expect_lt(sum(q90 < rc_synth$conc), 30)
+  expect_gt(sum(q90 < rc_synth$conc), 19)
 
   rc_synth
 })

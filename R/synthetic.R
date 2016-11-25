@@ -58,7 +58,7 @@ makeSyntheticData <- function(nrows = 240, seed = 156) {
   }
 
 
-  rc_synth = data.frame(Date = dates, flow = flows, flow.units = "CFS",
+  rc_synth = data.frame(Date = dates, flow = flows, flow.units = "ft3/s",
                         q = qs, doy = doys, time = times) %>%
     mutate(c_nonoise = fc(q, doy, time),
            noise = rnorm(nrows),
@@ -99,7 +99,7 @@ makeSyntheticCohn <- function(nrows, sigsq, log_detlim = 0) {
   out <- data.frame(Date = seq.Date(from = as.Date("2001-01-01"),
                                     by = 30, length.out = nrows),
                     flow = exp(lq), conc = exp(lc),
-                    flow.units = "CFS", conc.units = "mg/l", is.bdl = bdl)
+                    flow.units = "ft3/s", conc.units = "mg/l", is.bdl = bdl)
 
   out
 }

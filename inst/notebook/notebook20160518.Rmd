@@ -1,0 +1,119 @@
+---
+title: "notebook20160518"
+author: "Mark Hagemann"
+date: "May 18, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I've decided I need to start keeping a notebook for this project, even though the directory structure is somewhat limited as it's a package. 
+
+
+Picking up where I've left off in troubleshooting the data retrieval workflow. See vignettes/retrieval
+
+```{r}
+
+unique(qData$MonitoringLocationIdentifier)
+
+qData %>% 
+  filter(grepl("USGS", MonitoringLocationIdentifier)) %>% 
+  summary()
+```
+
+Looks like I need to retrieve USGS flows using pcodes. 
+
+
+```{r}
+names <- getWQPCodes("Characteristicname")
+glimpse(names)
+
+filter(names, grepl("NWIS", providers),
+       grepl("flow", value)) %>% 
+  print(n = 100)
+
+pcodes <- dataRetrieval::pCodeToName
+
+dplyr::filter(pcodes,
+       grepl("Discharge", description, ignore.case = TRUE)) %>% 
+  tbl_df() %>% 
+  print(n = 100)
+
+dplyr::filter(pcodes,
+       grepl("flow", description, ignore.case = TRUE)) %>% 
+  tbl_df() %>% 
+  print(n = 100)
+
+```
+
+Can I just append the parameter codes to the flow strings in my getFlowData function?
+
+```{r}
+constructWQPURL
+```
+
+Doesn't look like it. Plus they're switching between `pCode` and `characteristicName` in a potentially dangerous way. 
+
+Done. Try again.
+
+```{r}
+flowsites <- unique(no3Data$MonitoringLocationIdentifier)
+flowData <- getFlowData(flowsites, n = 100)
+
+flowData %>% 
+  filter(grepl("USGS", MonitoringLocationIdentifier)) %>% 
+  summary()
+```
+
+That appears to have worked!
+
+Now check out the multiple observations per day datasets.
+
+```{r}
+qData %>% 
+  filter(MonitoringLocationIdentifier == "USGS-01639000",
+         # ResultMeasure.MeasureUnitCode == "mg/l",
+         # ResultSampleFractionText == "Dissolved",
+         ActivityStartDate == "1993-12-05") %>%
+  transmute(Date = ActivityStartDate, datetime = ActivityStartDateTime,
+            value = ResultMeasureValue, units = ResultMeasure.MeasureUnitCode) %>% 
+  arrange(datetime) %>% 
+  ggplot(aes(x = datetime, y = value)) +
+  geom_point()
+```
+
+Nice, that looks good too.
+
+```{r}
+foo <- qData %>% 
+  transmute(detlimTxt = ResultDetectionConditionText, 
+            station = MonitoringLocationIdentifier,
+            char = CharacteristicName,
+            Date = ActivityStartDate,
+            detlim = DetectionQuantitationLimitMeasure.MeasureValue,
+            detlimUnits = DetectionQuantitationLimitMeasure.MeasureUnitCode,
+            value = ResultMeasureValue,
+            units = ResultMeasure.MeasureUnitCode,
+            comment = ResultCommentText)
+
+foo %>% 
+  filter(station == "USGS-01639000")
+
+```
+
+Looks like wqp_checkBDL is returning detLim as a list instead of a numeric. 
+
+```{r}
+wqpData <- flowData
+convertTo <- "CFS"
+convertedDLs <- convertUnits(
+      x = wqpData$DetectionQuantitationLimitMeasure.MeasureValue,
+      from = wqpData$DetectionQuantitationLimitMeasure.MeasureUnitCode,
+      to = convertTo)
+
+str(convertedDLs)
+```
+
+Fixed.

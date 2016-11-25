@@ -33,6 +33,9 @@ devtools::document()
 devtools::test()
 
 
+# Vignettes
+devtools::use_vignette("retrieval") # data retrieval
+
 # set up to use data
 # dir.create("data")
 use_data(Phosphorus, overwrite = TRUE)

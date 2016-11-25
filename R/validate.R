@@ -2,7 +2,7 @@
 #'
 #' @param what what quantity to predict/validate
 #' @param retransform compare predictions to observations in original uints?
-#' Must be TRUE if what == "load_kg.d"
+#' Must be TRUE if what == "load"
 #' @param ... Passed to predict.rcgam
 #' @importFrom markstats crossvalidate
 #' @importFrom markstats mae sse
@@ -10,7 +10,7 @@
 
 crossvalidate.rcgam  <- function(object, kfolds = 0,
                                  statistic = c("R2", "mse", "mae", "rmse"),
-                                 what = c("conc_mg.l", "load_kg.d"),
+                                 what = c("concentration", "load"),
                                  retransform = TRUE, ...) {
 
   if (!requireNamespace("rcmodel", quietly = TRUE)) {
@@ -19,14 +19,14 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
   }
 
   what = match.arg(what)
-  if(what == "load_kg.d" && ! retransform)
+  if(what == "load" && ! retransform)
     stop("Loads must be crossvalidated in original units")
   data <- getData(object)
   data$c <- object$transform$ctrans(data$conc)
-  data$load = rcmodel::calcLoad(data$conc, data$flow)
+  data$load = loadTS(data$conc, data$flow, data$Date)[["load"]]
   fmla <- object$formula
 
-  yname <- ifelse(what == "conc_mg.l", ifelse(retransform, "conc", "c"),
+  yname <- ifelse(what == "concentration", ifelse(retransform, "conc", "c"),
                   "load")
   statistic = match.arg(statistic)
   sfun = ifelse(statistic == "mae", "mae", "sse")
@@ -63,7 +63,8 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
     for (fold in 1:kfolds) {
       train <- data[case.folds != fold, ]
       test <- data[case.folds == fold, ]
-      curobj <- rcmodel::rcgam(formula = fmla, data = train)
+      # browser()
+      curobj <- rcgam(formula = fmla, data = train)
 
       ypred <- as.numeric(predict(curobj, newdata = test, what = what,
                                   retransform = retransform, ...)$fit)
@@ -110,25 +111,24 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
 #' @export
 
 splitSampleTest <- function(object, condition,
-                            what = c("conc_mg.l", "load_kg.d"),
+                            what = c("concentration", "load"),
                             retransform = TRUE,
                             scale = c("none", "gcv", "cv"),
                             kfolds = 10, incl.data = FALSE,
                             ...) {
   what = match.arg(what)
   scale = match.arg(scale)
-  if(what == "load_kg.d" && ! retransform)
+  if(what == "load" && ! retransform)
     stop("Loads must be crossvalidated in original units")
   data1 <- getData(object, type = "raw")
   data2 <- getData(object, type = "rcData")
   data <- cbind(data1, data2[setdiff(names(data2), names(data1))])
 
-  data$load = calcLoad(data$conc, data$flow)
+  data$load = loadTS(data$conc, data$flow, data$Date)[["load"]]
   fmla <- object$formula
 
-  yname <- ifelse(what == "conc_mg.l", ifelse(retransform, "conc", "c"),
+  yname <- ifelse(what == "concentration", ifelse(retransform, "conc", "c"),
                   "load")
-  # browser()
   split <- eval(substitute(condition), data)
   train <- data[!split, ]
   test <- data[split, ]
@@ -141,6 +141,7 @@ splitSampleTest <- function(object, condition,
     curobj <- do.call("rcgam", list(formula = fmla, data = train))
     ypred <- as.numeric(predict(curobj, newdata = test, what = what,
                                 retransform = retransform, ...)$fit)
+    # browser()
     ymeas <- test[[yname]]
 
     if (scale == "gcv") {
