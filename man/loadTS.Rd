@@ -4,7 +4,8 @@
 \alias{loadTS}
 \title{Calculate loads from concentration and flow}
 \usage{
-loadTS(flow, conc, datetime, flow.units, conc.units, load.units)
+loadTS(flow, conc, datetime, flow.units = "ft3/s", conc.units = "mg/l",
+  load.units = "kg/day")
 }
 \arguments{
 \item{flow}{stream discharge (volume per timie)}
@@ -13,7 +14,7 @@ loadTS(flow, conc, datetime, flow.units, conc.units, load.units)
 
 \item{datetime}{Time of observations, as a Date or POSIXct object.}
 
-\item{flow.units}{options are "CFS" (default), "m3/s", and "l/s"}
+\item{flow.units}{options are "ft3/s" (default), "m3/s", and "l/s"}
 
 \item{conc.units}{options are "mg/l" (default), "ug/l", and "ng/l"}
 

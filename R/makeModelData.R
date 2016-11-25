@@ -173,15 +173,15 @@ makeRawData.data.frame <- function(data, rcmodel = NULL,
 
 #' Get data from rcgam or rclm objects
 #'
-#' simple extraction of data, returning useful errors if impossible. Useful as a
-#' method for the generic `getData` from `nlme` package
+#' simple extraction of data, returning useful errors if impossible.
+#' Uses markstats::getData generic.
 #'
 #' @param object an object of class `rcgam`
 #' @param type What kind of data to return--raw or transformed (rcData object)
 #' @importFrom markstats getData
 #' @export
 
-getData <- function(object, type = c("raw", "rcData")) {
+getData.rcgam <- function(object, type = c("raw", "rcData")) {
   stopifnot(is(object, "rclm") | is(object, "rcgam"))
   type = match.arg(type)
 
@@ -196,6 +196,37 @@ getData <- function(object, type = c("raw", "rcData")) {
     out <- rcmodel::makeRawData(out)
   out
 }
+
+
+#' Get data from rcgam or rclm objects
+#'
+#' simple extraction of data, returning useful errors if impossible.
+#' Uses markstats::getData generic.
+#'
+#' @param object an object of class `rclm`
+#' @param type What kind of data to return--raw or transformed (rcData object)
+#' @importFrom markstats getData
+#' @export
+
+getData.rclm <- function(object, type = c("raw", "rcData")) {
+  stopifnot(is(object, "rclm") | is(object, "rcgam"))
+  type = match.arg(type)
+
+  out <- if (is.null(object$data)) {
+    warning("model structure does not include data. Attempting to get from environment")
+    eval(object$call$data, envir = attr(object$terms, ".Environment"))
+  }
+  else
+    object$data
+
+  if(type == "raw")
+    out <- rcmodel::makeRawData(out)
+  out
+}
+
+
+
+
 
 #
 #' Transform data in a systematic way
