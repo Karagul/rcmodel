@@ -23,6 +23,7 @@ use_package("conditionalSample")
 use_package("nlme")
 # use_package("markstats", type = "Depends")
 use_package("R.utils")
+use_package("leaflet", type = "suggests")
 use_testthat()
 
 # document
@@ -36,14 +37,21 @@ devtools::test()
 # Vignettes
 devtools::use_vignette("retrieval") # data retrieval
 
-# set up to use data
+
+# Datasets ----------------------------------------------------------------
 # dir.create("data")
 use_data(Phosphorus, overwrite = TRUE)
 use_data(rc_synth, overwrite = TRUE)
+use_data(nitrateData, overwrite = TRUE)
+use_data(no3Flow, overwrite = TRUE)
+
+# internal, for functions
+use_data(tzTable, internal = TRUE, overwrite = TRUE)
+use_data(olsonTbl, internal = TRUE, overwrite = TRUE)
+use_data(scTable, internal = TRUE, overwrite = TRUE)
 
 
-# load and install package
-
+# load and install package ------------------------------------------------
 devtools::install_github("markwh/markstats")
 devtools::install()
 

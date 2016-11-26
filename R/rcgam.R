@@ -106,7 +106,7 @@ predict.rcgam <- function(object, smear = TRUE, retransform = TRUE,
       newdata <- arglist[["newdata"]]
       if (is.null(newdata))
         stop("newdata argument must be supplied for load prediction.")
-      flow <- object$transform$qinvert(newdata$q)
+      flow <- attr(newdata, "transform")$qinvert(newdata$q)
       assert_that(is(flow, "numeric"))
       outload <- loadTS(flow = flow, conc = out$fit, datetime = newdata$Date,
                         load.units = "kg/day",

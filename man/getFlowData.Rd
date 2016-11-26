@@ -4,7 +4,12 @@
 \alias{getFlowData}
 \title{Simple flow retrieval from WQP sites}
 \usage{
-getFlowData(siteids)
+getFlowData(siteids, n = 100)
+}
+\arguments{
+\item{siteids}{Character vector of site identifiers}
+
+\item{n}{Maximum number of sites per retrieval. Full retrieval will be done in batches of n.}
 }
 \description{
 Simple flow retrieval from WQP sites

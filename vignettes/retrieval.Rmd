@@ -19,8 +19,9 @@ This document details an example data retrieval workflow. The steps are:
 2. Make WQP request
 3. Perform checks on retrieved data
     - Accounting of columns and classes
+    - Remove undesired "activity" (e.g. quality control samples)
     - Remove undesired fractions
-    - Address units reported (optionally convert these)
+    - Look up missing units, optionally convert these
     - Address detection limits and try to infer where missing.
     
 
@@ -30,158 +31,83 @@ This document details an example data retrieval workflow. The steps are:
 ```{r}
 bb1 <- bbox(-80, 38, -77, 40, plot = TRUE)
 
-inputChars <- charNameLookup("alumin")
+inputChars <- charNameLookup("nitrate")
 flowChars <- bind_rows(charNameLookup("flow"),
                        charNameLookup("discharge"))
 
 inputChars
-flowChars
+print(flowChars, n = 30)
 ```
 
 
 ### Make WQP request
 
 ```{r}
-aluminumData <- getConcData(bBox = bb1, charname = inputChars$value)
+(nitrChars <- inputChars[c(4, 5, 6, 8), ])
+
+nitrateData <- timeit(getConcData(bBox = bb1, charname = nitrChars$value))
+dim(nitrateData)
 ```
 
 ### Perform checks
 
 ```{r}
-alData <- aluminumData %>% 
+library(dplyr)
+
+no3Data <- nitrateData %>% 
   wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkFraction() %>% 
-  wqp_checkUnits(convertTo = c("mg/l", "mg/kg")) %>% 
-  wqp_checkBDL()
+  wqp_checkUnits(convertTo = c("mg/l", "mg/l as N", "meq/l", "mg/kg"),
+                 inconvertibles = "omit") %>% 
+  wqp_checkBDL() %>% 
+  wqp_checkDuplicates()
 ```
 
 
 ### Get flow data
 
 ```{r}
+flowsites <- unique(no3Data$MonitoringLocationIdentifier)
+no3Flow <- timeit(getFlowData(flowsites, n = 100))
 
-flowsites <- unique(alData$MonitoringLocationIdentifier)
-flowData <- getFlowData(flowsites)
-
-summary(as.factor(flowData$ActivityTypeCode))
-summary(as.factor(flowData$ResultMeasure.MeasureUnitCode))
-qData <- flowData %>% 
+qData <- no3Flow %>% 
+  wqp_checkClasses() %>% 
   wqp_checkActivity() %>% 
   wqp_checkUnits(convertTo = "cfs") %>% 
-  wqp_checkBDL()
-summary(as.factor(qData$ActivityTypeCode))
-summary(as.factor(qData$ResultMeasure.MeasureUnitCode))
+  wqp_checkBDL() %>% 
+  wqp_checkDuplicates()
 ```
 
-Get single flow observation for each day.
+Simplify to daily resolution.
 
 ```{r}
-maxPerDay <- function(df) {
-  max(summary(as.factor(df$ActivityStartDate)))
-  which.max(summary(as.factor(df$ActivityStartDate)))
-  
-}
-df <- flowData_good[[3]]
-df[df$ActivityStartDate == "2008-06-16", "ActivityTypeCode"]
+no3Simple <- wqp_simplifyConc(no3Data, average = "time")
+qSimple <- wqp_simplifyFlow(qData, average = "time")
 ```
-
-Some are quality control replicates
-
-```{r}
-lapply(flowData_good, function(x) unique(x$ActivityTypeCode)) %>% 
-  unlist %>% 
-  as.factor() %>% 
-  summary()
-```
-
-Add to workflow the omission of "quality control" activity types.
-
-```{r}
-
-all(sapply(flowData_good, ncol) == 65)
-
-#' Takes an object returned by readWQPData (or getConcData) and returns an
-#' object of class rcData
-#'
-wqpToRcData <- function(concData, flowData) {
-  
-  knownTypes <- c("Sample-Routine", "Sample", "Not determined",
-                  "Field Msr/Obs", "Sample-Composite Without Parents")
-  
-  # Omit quality control samples
-  concData <- concData[!grepl("Quality Control", concData$ActivityTypeCode), ]
-  unrecTypes_conc <- setdiff(concData$ActivityTypeCode, knownTypes)
-  if(length(unrecTypes_conc) > 0)
-    warning(paste("Unknown activity types present in conc data:", 
-                  paste(unrecTypes_conc, collapse = "; ")))
-  flowData <- flowData[!grepl("Quality Control", flowData$ActivityTypeCode), ]
-  unrecTypes_flow <- setdiff(flowData$ActivityTypeCode, knownTypes)
-  if(length(unrecTypes_flow) > 0)
-    warning(paste("Unknown activity types present in flow data:", 
-                  paste(unrecTypes_flow, collapse = "; ")))
-
-  # Make sure all columns are accounted for
-  # Calculate BDLs
-  
-}
-
-
-```
-
 
 
 ### Convert to rcData
 
-1. Make preliminary data.frame with columns Date, flow, flow.units, conc, conc.units, is.bdl
-
-
-```{r}
-
-rcDatas <- lapply()
-```
-
-
-### Fix getConcData to always give same columns and classes DONE. Made wqp_checkClasses function
+unlike the wqp datasets, each rcData object is specific to a location and characteristic. Therefore, the result of converting a simplified wqp dataset to rcData will be a list of rcData objects.
 
 ```{r}
-classDF <- function(df) 
-  as.data.frame(lapply(df, function(obj) paste(class(obj), collapse = ";")))
-classes <- lapply(flowData_good, classDF) %>% 
-  bind_rows()
+rcDataList <- makeRcData(simpleConc = no3Simple, simpleFlow = qSimple)
 
-glimpse(classes)
-dim(classes)
-dim(unique(classes))
+nobs <- sapply(rcDataList, nrow)
+nbdl <- sapply(rcDataList, function(df) sum(df$is.bdl))
 
-glimpse(unique(classes))
-
-datecols <- names(aluminumData)[grepl("Date$", names(aluminumData))]
-
-notDate <- sapply(flowData_good, function(df) class(df[[datecols[4]]]) != "Date") %>% 
-  which()
-notDate
+rcDataList <- rcDataList[nobs >= 30 & nbdl == 0]
 
 ```
 
-### Deal with units
+Now we can easily make rating curve models using these datasets.
 
 ```{r}
-unique(aluminumData$ResultMeasure.MeasureUnitCode)
-# Which are in percent?
+no3Models <- lapply(rcDataList, loadest_cal)
+length(no3Models)
 
-which(aluminumData$ResultMeasure.MeasureUnitCode == "%")
-aluminumData[10330, ] %>% glimpse
-dataRetrieval::pCodeToName %>% filter(parm_cd == "30221")
-
-which(aluminumData$ResultMeasure.MeasureUnitCode == "mg/kg")
-aluminumData[3430, ] %>% glimpse
-dataRetrieval::pCodeToName %>% filter(parm_cd == "01108")
-
-# So is the problem bed sediment?
-aluminumData$ResultSampleFractionText %>% unique
-
+sapply(no3Models, markstats::R2) %>% summary
 ```
 
-Make function convertToMg_L 
-
+OK! Calling it a day. Git commit and quit. 

@@ -39,6 +39,3 @@ test_that("time zones are converted to UTC correctly", {
   expect_error(toUTC_oneTZ(c("2011-07-02 22:44:01", "2011-01-02 22:44:01"),
                      c("America/New_York", "America/New_York")))
 })
-
-
-

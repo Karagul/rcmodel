@@ -24,4 +24,3 @@ The wqp package uses the second option, as it best reports the uncertainty about
 
 
 Creating time columns when only dates are reported requires additional information about time zone. This can typically be computed using date and location. 
-

@@ -2,11 +2,10 @@
 % Please edit documentation in R/wqData.R
 \name{wqp_checkUnits}
 \alias{wqp_checkUnits}
-\title{Replaces missing units by
-1. Looking up using USGSPCode
-2. If value is zero, assigns units as most commonly used units in dataset}
+\title{Look up missing units, possibly converting them to a supplied list of candidates.}
 \usage{
-wqp_checkUnits(wqpData, convertTo = NULL)
+wqp_checkUnits(wqpData, convertTo = NULL, inconvertibles = c("preserve",
+  "omit"), depthUnits = NULL)
 }
 \arguments{
 \item{wqpData}{data.frame returned by readWQPData}
@@ -14,9 +13,16 @@ wqp_checkUnits(wqpData, convertTo = NULL)
 \item{convertTo}{Optional character vector specifying the units to be converted to.
 If more than one is provided, they are tried in the order they are given.
 The udunits2 package is used for conversion.}
+
+\item{inconvertibles}{Should units that cannot be converted be preserved
+or omitted from the result?}
+
+\item{depthUnits}{Units to which to convert height/depth measurements, if desired.}
+
+\item{convertTo}{vector of candidates for unit conversion.}
 }
 \description{
-Replaces missing units by
+Replaces missing units by:
 1. Looking up using USGSPCode
 2. If value is zero, assigns units as most commonly used units in dataset
 }

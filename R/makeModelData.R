@@ -14,7 +14,6 @@
 #' @param csd (optional) stdev to use for concentration scaling post-transform.
 #' @export
 
-
 makeModelData <- function(rawData, ...) {
   UseMethod("makeModelData")
 }

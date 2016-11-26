@@ -6,6 +6,17 @@
 \usage{
 bbox(west, south, east, north, plot = TRUE)
 }
+\arguments{
+\item{west}{Minimum longitude in decimal degrees}
+
+\item{south}{Minimum latitude in decimal degrees}
+
+\item{east}{Maximum longitude in decimal degrees}
+
+\item{north}{Maximum latitude in decimal degrees}
+
+\item{plot}{Generate a plot? Requires leaflet package.}
+}
 \description{
 Get and show bounding box
 }

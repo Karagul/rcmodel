@@ -106,5 +106,3 @@ All the data missing timezones are reported as 00:00:00.
     3. encode the information that time is unknown.
 
 I like option 2 the best. Use ActivityEndDateTime.
-
-
