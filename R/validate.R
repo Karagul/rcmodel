@@ -185,7 +185,7 @@ NSE <- function(object, what = c("concentration", "load")) {
   meas <- if (what == "concentration")
     measdat$conc
   else
-    with(measdat, calcFlux(flow = flow, conc = conc,
+    with(measdat, calcLoad(flow = flow, conc = conc,
                            flow.units = flow.units[1],
                            conc.units = conc.units[1],
                            load.units = "kg/day"))
