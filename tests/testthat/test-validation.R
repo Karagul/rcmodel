@@ -134,3 +134,15 @@ test_that("crossvalidation works for log-space estimates in rcgams", {
   #   mod2$gcv.ubre
   #   crossvalidate(mod2, retransform = FALSE, statistic = "mse")
 })
+
+test_that("NSE calculation works for rcgams", {
+  data(Phosphorus, package = "rcmodel")
+  mod2 = rcmodel::rcgam(c ~ s(q) + s(doy, bs = "cc", k = 4) + s(time), Phosphorus)
+
+  expect_is(NSE(mod2), "numeric")
+  expect_equal(length(NSE(mod2)), 1)
+  expect_lt(NSE(mod2), 1)
+  expect_is(NSE(mod2, what = "load"), "numeric")
+  expect_equal(length(NSE(mod2, what = "load")), 1)
+  expect_lt(NSE(mod2, what = "load"), 1)
+})

@@ -2,7 +2,7 @@
 #'
 #' Performs appropriate unit conversion to go from flow and concentration to load
 #'
-#' @param flow stream discharge (volume per timie)
+#' @param flow stream discharge (volume per time)
 #' @param conc constituent concentration (mass per volume)
 #' @param datetime Time of observations, as a Date or POSIXct object.
 #' @param flow.units options are "ft3/s" (default), "m3/s", and "l/s"
@@ -14,19 +14,12 @@
 
 loadTS <- function(flow, conc, datetime,
                      flow.units = "ft3/s", conc.units = "mg/l", load.units = "kg/day") {
-  flow.units = validateUnits(flow.units)
-  conc.units = validateUnits(conc.units)
-  load.units = validateUnits(load.units)
 
-  assert_that(all(flow >= 0) && all(conc >= 0),
-              length(flow) == length(conc) && length(conc) == length(datetime),
-              is.time(datetime) || is.date(datetime))
+  assert_that(length(conc) == length(datetime),
+  is.time(datetime) || is.date(datetime))
 
-  flow_si <- convertUnits(flow, from = flow.units, to = "m3/s")[["x"]]
-  conc_si <- convertUnits(conc, from = conc.units, to = "kg/m3")[["x"]]
-
-  load_si <- flow_si * conc_si # kg/s
-  load <- convertUnits(load_si, from = "kg/s", to = load.units)[["x"]]
+  load <- calcLoad(flow = flow, conc = conc, flow.units = flow.units,
+           conc.units = conc.units, load.units = load.units)
 
   out <- structure(data.frame(datetime = datetime,
                     load = load, load.units = load.units),
@@ -56,3 +49,33 @@ totLoad <- function(load, datetime,
   out
 }
 
+
+#' Calculate mass flux from concentration and flow
+#'
+#' Performs appropriate unit conversion to go from flow and concentration to load
+#'
+#' @param flow stream discharge (volume per time)
+#' @param conc constituent concentration (mass per volume)
+#' @param flow.units options are "ft3/s" (default), "m3/s", and "l/s"
+#' @param conc.units options are "mg/l" (default), "ug/l", and "ng/l"
+#' @param load.units options are "kg/day"
+#' @return vector of fluxes in specified units
+#' @importFrom assertthat assert_that
+#' @export
+calcLoad <- function(flow, conc, flow.units = "ft3/s", conc.units = "mg/l",
+                     load.units = "kg/day") {
+  flow.units = validateUnits(flow.units)
+  conc.units = validateUnits(conc.units)
+  load.units = validateUnits(load.units)
+
+  assert_that(all(flow >= 0) && all(conc >= 0),
+              length(flow) == length(conc))
+
+  flow_si <- convertUnits(flow, from = flow.units, to = "m3/s")[["x"]]
+  conc_si <- convertUnits(conc, from = conc.units, to = "kg/m3")[["x"]]
+
+  load_si <- flow_si * conc_si # kg/s
+  load <- convertUnits(load_si, from = "kg/s", to = load.units)[["x"]]
+
+  load
+}

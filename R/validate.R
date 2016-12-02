@@ -168,3 +168,27 @@ splitSampleTest <- function(object, condition,
     out <- list(resid = out, data = test, scale = setNames(denom, scale), gof = gof)
   out
 }
+
+
+#' Nash-sutcliffe efficiency for concentration and load
+#'
+#' @param object a rcgam or rclm object
+#' @param what Calculate NSE on concentration or load?
+#' @importFrom markstats getData
+NSE <- function(object, what = c("concentration", "load")) {
+
+  what <- match.arg(what)
+
+  stopifnot(is(object, "rcgam") || is(object, "rclm"))
+  measdat <- markstats::getData(object, type = "raw")
+  pred <- predict(object, what = what, newdata = measdat)[["fit"]]
+  meas <- if (what == "concentration")
+    measdat$conc
+  else
+    with(measdat, calcFlux(flow = flow, conc = conc,
+                           flow.units = flow.units[1],
+                           conc.units = conc.units[1],
+                           load.units = "kg/day"))
+  out <- 1 - var(meas - pred) / var(meas)
+  out
+}
