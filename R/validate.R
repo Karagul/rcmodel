@@ -175,6 +175,7 @@ splitSampleTest <- function(object, condition,
 #' @param object a rcgam or rclm object
 #' @param what Calculate NSE on concentration or load?
 #' @importFrom markstats getData
+#' @export
 NSE <- function(object, what = c("concentration", "load")) {
 
   what <- match.arg(what)
