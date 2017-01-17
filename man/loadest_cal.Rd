@@ -4,7 +4,7 @@
 \alias{loadest_cal}
 \title{Calibrate a model or series of models using LOADEST built-in forms}
 \usage{
-loadest_cal(data, modno = 0, fun.select = AIC, which.select = min)
+loadest_cal(data, modno = 0, fun.select = AIC, which.select = min, ...)
 }
 \arguments{
 \item{data}{An rcData object}
@@ -14,6 +14,8 @@ loadest_cal(data, modno = 0, fun.select = AIC, which.select = min)
 \item{fun.select}{function to use to select between models}
 
 \item{which.select}{Either min or max, tells which value of select funciton is best}
+
+\item{...}{Other arguments passed to rcgam.}
 }
 \description{
 Returns list with elements corresponding to typical LOADEST output files

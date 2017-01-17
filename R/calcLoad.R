@@ -31,6 +31,7 @@ loadTS <- function(flow, conc, datetime,
 #' Calculate total load from a time series of estimated loads
 #' Uses trapezoid approximation for integral.
 #' @param load time series of loads.
+#' @param datetime dates/times corresponding to loads. Can be either a "time" or "Date" object.
 #' @importFrom assertthat assert_that is.date is.time
 #' @export
 totLoad <- function(load, datetime,

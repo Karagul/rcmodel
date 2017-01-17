@@ -9,6 +9,8 @@ totLoad(load, datetime, load.units = c("kg/day", "kg/yr", "tonne/yr"))
 }
 \arguments{
 \item{load}{time series of loads.}
+
+\item{datetime}{dates/times corresponding to loads. Can be either a "time" or "Date" object.}
 }
 \description{
 Calculate total load from a time series of estimated loads

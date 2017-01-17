@@ -32,9 +32,10 @@ loadest.form <- function(number) {
 #' @param modno The LOADEST model number, defaults to 0 (automatic selection)
 #' @param fun.select function to use to select between models
 #' @param which.select Either min or max, tells which value of select funciton is best
+#' @param ... Other arguments passed to rcgam.
 #' @importFrom assertthat assert_that
 #' @export
-loadest_cal <- function(data, modno = 0, fun.select = AIC, which.select = min) {
+loadest_cal <- function(data, modno = 0, fun.select = AIC, which.select = min, ...) {
 
   # calibrate
   # validate, select
@@ -49,7 +50,7 @@ loadest_cal <- function(data, modno = 0, fun.select = AIC, which.select = min) {
 
   forms <- loadest.form(modno)
   mods <- lapply(forms, as.formula) %>%
-    lapply(rcgam, data = data)
+    lapply(rcgam, data = data, ...)
 
   selvals <- vapply(mods, fun.select, numeric(1))
   bestno <- which(selvals == which.select(selvals))
@@ -70,6 +71,7 @@ loadest_check <- function(object) {
 #' @param object a rcgam object
 #' @param preddata either a rcData object or a data.frame that can be converted to one via makePredData
 #' @param what either "load" for load (kg/day) or "conc" for concentration (mg/L)
+#' @param other arguments passed to predict.rcgam.
 #' @export
 loadest_pred <- function(object, preddata, flow = NULL,  what = c("load", "conc"),
                          ...) {
@@ -83,7 +85,6 @@ loadest_pred <- function(object, preddata, flow = NULL,  what = c("load", "conc"
 
   concpred <- predict.rcgam(object, newdata = preddata, retransform = TRUE,
                             type = "response", ...)
-
 
 }
 

@@ -12,6 +12,8 @@ loadest_pred(object, preddata, flow = NULL, what = c("load", "conc"), ...)
 \item{preddata}{either a rcData object or a data.frame that can be converted to one via makePredData}
 
 \item{what}{either "load" for load (kg/day) or "conc" for concentration (mg/L)}
+
+\item{other}{arguments passed to predict.rcgam.}
 }
 \description{
 Make predictions a la LOADEST
