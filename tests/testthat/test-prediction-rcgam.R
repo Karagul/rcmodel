@@ -45,22 +45,6 @@ test_that("untransformed predictions are same as gam predictions", {
                mgcv::predict.gam(mod2))
 })
 
-test_that("conditional samples are correct", {
-  data("rc_synth")
-  mod1 = rcgam(c ~ s(q, k = 5) + s(doy, bs = "cc", k = 4) + s(time), rc_synth)
-  q10 <- markstats::condlSample(mod1, quantile = 0.1)
-  q90 <- markstats::condlSample(mod1, quantile = 0.9)
-
-  expect_lt(mean(q10), mean(rc_synth$conc))
-  expect_gt(mean(q90), mean(rc_synth$conc))
-
-  expect_lt(sum(q10 > rc_synth$conc), 30)
-  expect_gt(sum(q10 > rc_synth$conc), 19)
-  expect_lt(sum(q90 < rc_synth$conc), 30)
-  expect_gt(sum(q90 < rc_synth$conc), 19)
-
-})
-
 test_that("restricting predictions works", {
   data(Phosphorus)
   pdat = makeModelData(Phosphorus)

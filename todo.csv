@@ -1,5 +1,5 @@
 "itemText","timeCreated","status","timeCompleted","isCompleted","itemID","comment"
 "consolidate documentation for getData methods",2016-11-25 16:18:07,"incomplete",NA,FALSE,1,""
-"remove udunits dependency",2017-03-03 16:05:56,"incomplete",NA,FALSE,2,"need alternative to validateUnits_ convertUnits; only comes up in calcLoad function!"
+"remove udunits dependency",2017-03-03 16:05:56,"completed",2017-03-04 00:17:26,TRUE,2,""
 "make mindmap for code organization",2017-03-03 16:06:18,"completed",2017-03-03 21:36:17,TRUE,3,""
 "fix crossvalidation timeout - test-validation.R lines 99, 119",2017-03-04 00:12:36,"incomplete",NA,FALSE,4,""

@@ -43,8 +43,6 @@ devtools::use_vignette("retrieval") # data retrieval
 # dir.create("data")
 use_data(Phosphorus, overwrite = TRUE)
 use_data(rc_synth, overwrite = TRUE)
-use_data(nitrateData, overwrite = TRUE)
-use_data(no3Flow, overwrite = TRUE)
 
 # internal, for functions
 unitTable <- read.csv("inst/unitTable.csv", stringsAsFactors = FALSE)
