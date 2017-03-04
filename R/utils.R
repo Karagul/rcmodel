@@ -1,67 +1,5 @@
 # Utility functions
 
-#' ripped off from http://stackoverflow.com/a/8189441
-Mode <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
-
-#' Simple timing of function execution
-#'
-#' Time the execution of a function, returning the function's output and messaging the time difference
-#' @param expr Unevaluated function call.
-#' @export
-
-timeit <- function(expr) {
-  t1 <- Sys.time()
-  out <- evalq(expr)
-  t2 <- Sys.time()
-  time <- difftime(t2, t1, units = "auto")
-  message(sprintf("Finished in %.4g %s.", time, attr(time, "units")))
-  attr(out, "timeElapsed") <- time
-  out
-}
-
-
-#' Convert timezones of a datetime character vector
-#'
-#' Conversion for a single timezone
-#'
-#' toUTC_oneTZ allows conversion for observations in a single timezone to UTC,
-#' while toUTC allows for multiple starting timezones to be specified.
-#' @param timestring A character vector convertible to POSIXct format
-#' @param tzstring A character vector specifying time zones of timestring.
-#' For toUTC_oneTZ, this must be of length one. For toUTC, this must have length
-#' equal to that of timestring.
-#' @param ... Arguments passed to as.POSIXct. (e.g. \code{format})
-#' @seealso \code{\link{timezones}} for how to specify timezones, \code{\link{as.POSIXct}}
-#' @export
-
-toUTC_oneTZ <- function(timestring, tzstring, ...) {
-  stopifnot(length(tzstring) == 1)
-  psx1 <- as.POSIXct(timestring, tz = tzstring, ...)
-  psx2 <- as.POSIXct(format(psx1, tz = "UTC", usetz = TRUE), tz = "UTC")
-  psx2
-}
-
-#' @export
-#' @describeIn toUTC_oneTZ Conversion allowing for multiple timezones
-
-toUTC <- function(timestring, tzstring, ...) {
-  stopifnot(length(timestring) == length(tzstring))
-  tzstring <- as.factor(tzstring)
-  timelist <- split(timestring, f = tzstring)
-
-  mapfun <- function(timestring, tzstring) {
-    out <- toUTC_oneTZ(timestring = timestring, tzstring = tzstring, ...)
-  }
-
-  utcList <- Map(mapfun, timestring = timelist, tzstring = levels(tzstring))
-  out <- unsplit(utcList, f = tzstring)
-
-  out
-}
-
 #' Compute seasonal harmonic functions
 #'
 #' Returns orthogonal harmonic functions from degree 1 to `degree` over a
@@ -153,4 +91,167 @@ adry <- function(x, thresh) {
   dds <- lapply(foo$lengths[dd], function(x) seq(1:x))
   wets <- lapply(foo$lengths[!dd], function(x) rep(0, x))
 
+}
+
+#' replacement function for commonly given, but "improper" units,
+#' e.g. "CFS", which *should* be ft3/s
+#'
+#' Unless udunits2 is available, this only converts common concentration, flow,
+#' and load units.
+#'
+#' @export
+validateUnits <- function(unit, use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+  # unit <- tolower(unit)
+  replacement <- c("cfs" = "ft3/s", "CFS" = "ft3/s",
+                   "gpm" = "gallon/min",
+                   "gal/min" = "gallon/min",
+                   "mgd" = "Mgallon/day", "MGD" = "Mgallon/day")
+
+  matches <- match(unit, names(replacement))
+  matchna <- is.na(matches)
+  out <- unit
+  out[!matchna] <- replacement[matches[!matchna]]
+
+  if (requireNamespace("udunits2", quietly = TRUE)) {
+    convertible <- vapply(out, udunits2::ud.is.parseable, logical(1))
+  } else {
+    convertible <- out %in% unitTable$unit
+  }
+
+  if (sum(!convertible) > 0)
+    warning(paste("Unrecognized units:",
+                  paste(unique(out[!convertible]), collapse = ", ")))
+
+  out
+}
+
+
+#' Wrapper for ud.convert that accepts vector inputs and multiple conversion candidates.
+#'
+#' if udunits2 package is available, this is used. Otherwise my own functions.
+#'
+#' @param x Numeric vector of values
+#' @param from Units of x values
+#' @param to Units to convert to.
+#' @param inconvertibles Should units that cannot be converted be preserved
+#' or omitted from the result?
+#' @return A data.frame with columns x and units
+#' @details If length(to) > 0, units the first is tried first, followed by the second, etc.
+#'  If units in from are already contained in to, these units are not converted.
+#' @importFrom assertthat assert_that
+#' @export
+
+convertUnits <- function(x, from, to, inconvertibles = c("preserve", "omit"),
+                         use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+
+  inconvertibles <- match.arg(inconvertibles)
+
+  if (length(from) == 1)
+    from <- rep(from, length(x))
+  if (length(to) == 1)
+    to <- rep(to, length(x))
+
+  assert_that(length(x) == length(from),
+              length(x) == length(to),
+              is(from, "character"),
+              is(to, "character"))
+
+  from <- validateUnits(from)
+  to <- validateUnits(to)
+
+
+  if (use.ud) {
+    out <- convertUnits_ud(x = x, from = from, to = to, inconvertibles = inconvertibles)
+  } else {
+    out <- convertUnits_r(x = x, from = from, to = to, inconvertibles = inconvertibles)
+  }
+
+  out
+
+}
+
+convertUnits_ud <- function(x, from, to, inconvertibles = c("preserve", "omit")) {
+
+  inconvertibles <- match.arg(inconvertibles)
+
+  # Perform a SINGLE conversion with nice error handling
+  conv <- function(to_) {
+    ret1 <- function(x_, from_) {
+      ret2 <- try(udunits2::ud.convert(x_, from_, to_), silent = TRUE)
+      ret2 <- ifelse(is(ret2, "try-error"), NA_real_, ret2)
+    }
+    ret1
+  }
+
+  # vectorized conversion
+  conv2 <- function(x_, from_, to_) {
+    unlist(Map(conv(to_), x_ = x_, from_ = from_))
+  }
+
+  inds <- is.na(match(from, to)) # indices of original units vector that don't match conversion candidates
+  out <- data.frame(x = x, units = from, stringsAsFactors = FALSE)
+
+  # map unique(from) to unit from to
+  ufrom <- unique(from)
+  whichCanConvert <- function(tounit)
+    ufrom[vapply(ufrom, udunits2::ud.are.convertible, logical(1), u2 = tounit)]
+
+  convList <- lapply(to, whichCanConvert) # Which are able to be converted to what
+
+  for (i in 1:length(convList)) {
+    if (length(convList[[i]]) == 0)
+      next
+    inds <- from %in% convList[[i]]
+    out[inds, ]$x = conv2(x[inds], from[inds], to[i])
+    out[inds, ]$units <- to[i]
+  }
+
+  if (inconvertibles == "omit")
+    out <- out[out$units %in% to, ]
+
+  out
+}
+
+toSI <- function(x, units) {
+
+  rows <- match(x = units, table = unitTable$unit)
+  multby <- unitTable$multby[rows]
+  out <- x * multby
+
+  out
+}
+
+fromSI <- function(x, units) {
+  rows <- match(x = units, table = unitTable$unit)
+  divby <- unitTable$multby[rows]
+  out <- x / divby
+
+  out
+}
+
+convertUnits_r <- function(x, from, to, inconvertibles = c("preserve", "omit")) {
+
+  inconvertibles <- match.arg(inconvertibles)
+
+  noneed <- from == to
+  need <- !noneed
+
+  out <- data.frame(x = x, units = from, stringsAsFactors = FALSE)
+
+  x_si <- toSI(x[need], units = from[need])
+  x_conv <- fromSI(x_si, units = to[need])
+
+  nas <- is.na(x_conv)
+
+  out$x[need][!nas] <- x_conv[!nas]
+  out$units[need][!nas] <- to[need][!nas]
+
+  if (inconvertibles == "omit") {
+    out[need,][nas] <- NA
+    out <- na.omit(out)
+  }
+
+  out$units[is.na(out$x)] = to[is.na(out$x)] # to be consistent with udunits behavior
+
+  out
 }

@@ -24,6 +24,7 @@ use_package("nlme")
 # use_package("markstats", type = "Depends")
 use_package("R.utils")
 use_package("leaflet", type = "suggests")
+use_package("udunits2", type = "suggests")
 use_testthat()
 
 # document
@@ -46,10 +47,8 @@ use_data(nitrateData, overwrite = TRUE)
 use_data(no3Flow, overwrite = TRUE)
 
 # internal, for functions
-use_data(tzTable, internal = TRUE, overwrite = TRUE)
-use_data(olsonTbl, internal = TRUE, overwrite = TRUE)
-use_data(scTable, internal = TRUE, overwrite = TRUE)
-
+unitTable <- read.csv("inst/unitTable.csv", stringsAsFactors = FALSE)
+use_data(unitTable, internal = TRUE, overwrite = TRUE)
 
 # load and install package ------------------------------------------------
 devtools::install_github("markwh/markstats")
