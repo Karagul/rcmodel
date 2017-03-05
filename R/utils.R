@@ -81,9 +81,10 @@ discount <- function(x, d) {
 #' Calculate antecedent dry days
 #'
 #' @param x Daily time series of rainfall amount.
-#' @param thresh threshold precipitation amount for determining what is "dry"
+#' @param thresh threshold precipitation amount for determining what is "dry", defaults to 0.1.
+#' @export
 
-adry <- function(x, thresh) {
+adry <- function(x, thresh = 0.1) {
   below <- x < thresh
 
   foo <- rle(as.numeric(below))

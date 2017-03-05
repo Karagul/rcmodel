@@ -1,7 +1,7 @@
 Package: rcmodel
 Type: Package
 Title: Calibrate and Validate Rating Curves for Riverine Load Estimation
-Version: 0.0.0.9010
+Version: 0.0.0.9011
 Date: 2015-03-28
 Authors@R: person("Mark", "Hagemann", email = "mark.hagemann@gmail.com", role = c("aut", "cre"))
 Maintainer: Mark Hagemann <mark.hagemann@gmail.com>

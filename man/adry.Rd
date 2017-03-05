@@ -4,12 +4,12 @@
 \alias{adry}
 \title{Calculate antecedent dry days}
 \usage{
-adry(x, thresh)
+adry(x, thresh = 0.1)
 }
 \arguments{
 \item{x}{Daily time series of rainfall amount.}
 
-\item{thresh}{threshold precipitation amount for determining what is "dry"}
+\item{thresh}{threshold precipitation amount for determining what is "dry", defaults to 0.1.}
 }
 \description{
 Calculate antecedent dry days
