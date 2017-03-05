@@ -29,10 +29,16 @@ loadTS <- function(flow, conc, datetime,
 }
 
 #' Calculate total load from a time series of estimated loads
+#'
 #' Uses trapezoid approximation for integral.
 #' @param load time series of loads.
-#' @param datetime dates/times corresponding to loads. Can be either a "time" or "Date" object.
+#' @param datetime dates/times corresponding to loads. Can be either a
+#' "time" or "Date" object.
+#' @param load.units units for the "load" time-series input. Can either be
+#' "kg/day" (default), "kg/yr", or "tonne/yr".
 #' @importFrom assertthat assert_that is.date is.time
+#' @return A single number--the mass load in whatever units are in the numerator of
+#' load.units (defult is kg/day, meaning the result is in units of kg)
 #' @export
 totLoad <- function(load, datetime,
                     load.units = c("kg/day", "kg/yr", "tonne/yr")) {

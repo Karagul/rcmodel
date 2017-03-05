@@ -2,18 +2,24 @@
 % Please edit documentation in R/calcLoad.R
 \name{totLoad}
 \alias{totLoad}
-\title{Calculate total load from a time series of estimated loads
-Uses trapezoid approximation for integral.}
+\title{Calculate total load from a time series of estimated loads}
 \usage{
 totLoad(load, datetime, load.units = c("kg/day", "kg/yr", "tonne/yr"))
 }
 \arguments{
 \item{load}{time series of loads.}
 
-\item{datetime}{dates/times corresponding to loads. Can be either a "time" or "Date" object.}
+\item{datetime}{dates/times corresponding to loads. Can be either a
+"time" or "Date" object.}
+
+\item{load.units}{units for the "load" time-series input. Can either be
+"kg/day" (default), "kg/yr", or "tonne/yr".}
+}
+\value{
+A single number--the mass load in whatever units are in the numerator of
+load.units (defult is kg/day, meaning the result is in units of kg)
 }
 \description{
-Calculate total load from a time series of estimated loads
 Uses trapezoid approximation for integral.
 }
 
