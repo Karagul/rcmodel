@@ -87,11 +87,16 @@ discount <- function(x, d) {
 adry <- function(x, thresh = 0.1) {
   below <- x < thresh
 
-  foo <- rle(as.numeric(below))
-  dd <- foo$values == 1
-  dds <- lapply(foo$lengths[dd], function(x) seq(1:x))
-  wets <- lapply(foo$lengths[!dd], function(x) rep(0, x))
+  f <- cumsum(!below)
+  ff <- c(0, f[2:length(f) - 1])
 
+  out0 <- lapply(split(below, ff), function(piece) 0:(length(piece) - 1))
+  out0[[1]] <- rep(NA, length(out0[[1]]))
+  out <- unlist(out0, use.names = FALSE)
+
+  assert_that(length(out) == length(x))
+
+  out
 }
 
 #' replacement function for commonly given, but "improper" units,
