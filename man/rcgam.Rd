@@ -4,7 +4,7 @@
 \alias{rcgam}
 \title{Rating-curve generalized additive model}
 \usage{
-rcgam(formula, data, timeout = 1, ...)
+rcgam(formula, data, timeout = 3, ...)
 }
 \arguments{
 \item{formula}{a GAM formula. See `help("gam", package = "mgcv")` for details.}

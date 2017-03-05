@@ -100,7 +100,9 @@ adry <- function(x, thresh) {
 #' and load units.
 #'
 #' @export
-validateUnits <- function(unit, use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+validateUnits <- function(unit,
+                          # use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+                          use.ud = FALSE) {
   # unit <- tolower(unit)
   replacement <- c("cfs" = "ft3/s", "CFS" = "ft3/s",
                    "gpm" = "gallon/min",
@@ -112,10 +114,10 @@ validateUnits <- function(unit, use.ud = requireNamespace("udunits2", quietly = 
   out <- unit
   out[!matchna] <- replacement[matches[!matchna]]
 
-  if (requireNamespace("udunits2", quietly = TRUE)) {
+  if (use.ud) {
     convertible <- vapply(out, udunits2::ud.is.parseable, logical(1))
   } else {
-    convertible <- out %in% unitTable$unit
+    convertible <- tolower(out) %in% tolower(unitTable$unit)
   }
 
   if (sum(!convertible) > 0)
@@ -142,7 +144,8 @@ validateUnits <- function(unit, use.ud = requireNamespace("udunits2", quietly = 
 #' @export
 
 convertUnits <- function(x, from, to, inconvertibles = c("preserve", "omit"),
-                         use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+                         # use.ud = requireNamespace("udunits2", quietly = TRUE)) {
+                         use.ud = FALSE) {
 
   inconvertibles <- match.arg(inconvertibles)
 
@@ -214,7 +217,7 @@ convertUnits_ud <- function(x, from, to, inconvertibles = c("preserve", "omit"))
 
 toSI <- function(x, units) {
 
-  rows <- match(x = units, table = unitTable$unit)
+  rows <- match(x = tolower(units), table = tolower(unitTable$unit))
   multby <- unitTable$multby[rows]
   out <- x * multby
 
@@ -222,7 +225,7 @@ toSI <- function(x, units) {
 }
 
 fromSI <- function(x, units) {
-  rows <- match(x = units, table = unitTable$unit)
+  rows <- match(x = tolower(units), table = tolower(unitTable$unit))
   divby <- unitTable$multby[rows]
   out <- x / divby
 

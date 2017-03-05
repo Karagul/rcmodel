@@ -44,7 +44,7 @@ use_data(Phosphorus, overwrite = TRUE)
 use_data(rc_synth, overwrite = TRUE)
 
 # internal, for functions
-unitTable <- read.csv("inst/unitTable.csv", stringsAsFactors = FALSE)
+# unitTable <- read.csv("inst/unitTable.csv", stringsAsFactors = FALSE)
 use_data(unitTable, internal = TRUE, overwrite = TRUE)
 
 # load and install package ------------------------------------------------

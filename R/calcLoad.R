@@ -5,7 +5,7 @@
 #' @param flow stream discharge (volume per time)
 #' @param conc constituent concentration (mass per volume)
 #' @param datetime Time of observations, as a Date or POSIXct object.
-#' @param flow.units options are "ft3/s" (default), "m3/s", and "l/s"
+#' @param flow.units options are "ft3/s" (default, also recognizes "CFS"), "m3/s", and "l/s"
 #' @param conc.units options are "mg/l" (default), "ug/l", and "ng/l"
 #' @param load.units options are "kg/day"
 #' @return data.frame with columns "datetime" and "load", also attribute "load.units"

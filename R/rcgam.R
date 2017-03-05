@@ -20,7 +20,7 @@
 #' @export
 
 
-rcgam <- function(formula, data, timeout = 1, ...) {
+rcgam <- function(formula, data, timeout = 3, ...) {
   cl <- match.call()
   if (!is(data, "rcData"))
     data = makeModelData(data)

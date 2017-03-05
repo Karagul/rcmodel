@@ -14,7 +14,7 @@ loadTS(flow, conc, datetime, flow.units = "ft3/s", conc.units = "mg/l",
 
 \item{datetime}{Time of observations, as a Date or POSIXct object.}
 
-\item{flow.units}{options are "ft3/s" (default), "m3/s", and "l/s"}
+\item{flow.units}{options are "ft3/s" (default, also recognizes "CFS"), "m3/s", and "l/s"}
 
 \item{conc.units}{options are "mg/l" (default), "ug/l", and "ng/l"}
 

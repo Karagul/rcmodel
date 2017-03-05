@@ -141,6 +141,30 @@ sse <- function(obs, pred) {
 }
 
 
+
+#' Diagonals of GAM influence matrix
+#' @importFrom mgcv magic.post.proc
+#' @param X A model matrix, potentially with unobserved prediction values
+#' @param object a gam model
+
+hatvalues.gam <- function(object, X = NULL) {
+  if (is.null(X))
+    return(object$hat)
+  return(magic.post.proc(X = X, object = object)$hat)
+}
+
+
+#' leave-one-out sum of squares
+#' useful for calculating Q2
+#' @export
+
+tss_loo <- function(x) {
+  omitted_mean <- function(ind) mean(x[-ind])
+  omeans <- vapply(1:length(x), omitted_mean, numeric(1))
+  sum((x - omeans)^2)
+}
+
+
 # from crossvalidate.R ----------------------------------------------------
 
 #' Cross-validation of regression models

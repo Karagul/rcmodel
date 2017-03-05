@@ -3,3 +3,4 @@
 "remove udunits dependency",2017-03-03 16:05:56,"completed",2017-03-04 00:17:26,TRUE,2,""
 "make mindmap for code organization",2017-03-03 16:06:18,"completed",2017-03-03 21:36:17,TRUE,3,""
 "fix crossvalidation timeout - test-validation.R lines 99, 119",2017-03-04 00:12:36,"incomplete",NA,FALSE,4,""
+"update available units in documentation for loadcalc, etc.",2017-03-05 13:16:01,"incomplete",NA,FALSE,5,""

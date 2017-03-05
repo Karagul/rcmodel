@@ -5,7 +5,7 @@
 \title{replacement function for commonly given, but "improper" units,
 e.g. "CFS", which *should* be ft3/s}
 \usage{
-validateUnits(unit, use.ud = requireNamespace("udunits2", quietly = TRUE))
+validateUnits(unit, use.ud = FALSE)
 }
 \description{
 Unless udunits2 is available, this only converts common concentration, flow,

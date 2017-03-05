@@ -5,7 +5,7 @@
 \title{Wrapper for ud.convert that accepts vector inputs and multiple conversion candidates.}
 \usage{
 convertUnits(x, from, to, inconvertibles = c("preserve", "omit"),
-  use.ud = requireNamespace("udunits2", quietly = TRUE))
+  use.ud = FALSE)
 }
 \arguments{
 \item{x}{Numeric vector of values}
