@@ -19,7 +19,6 @@ use_package("assertthat")
 use_package("testthat")
 use_package("dplyr")
 use_package("mgcv")
-use_package("conditionalSample")
 use_package("nlme")
 # use_package("markstats", type = "Depends")
 use_package("R.utils")
@@ -49,7 +48,6 @@ unitTable <- read.csv("inst/unitTable.csv", stringsAsFactors = FALSE)
 use_data(unitTable, internal = TRUE, overwrite = TRUE)
 
 # load and install package ------------------------------------------------
-devtools::install_github("markwh/markstats")
 devtools::install()
 
 

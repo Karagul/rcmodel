@@ -29,6 +29,6 @@ Now we can easily make rating curve models using these datasets.
 no3Models <- lapply(rcDataList, loadest_cal)
 length(no3Models)
 
-sapply(no3Models, markstats::R2) %>% summary
+sapply(no3Models, R2) %>% summary
 ```
 

@@ -42,7 +42,6 @@ test_that("data manipulation works using an rcgam object", {
   expect_is(makePredData(Phosphorus, object = mod2), "rcData")
 })
 
-# Should possibly move the following to markstats package
 test_that("getData works for rcgams", {
   data(Phosphorus)
   pdat = makeModelData(Phosphorus)

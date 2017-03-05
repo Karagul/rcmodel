@@ -173,11 +173,9 @@ makeRawData.data.frame <- function(data, rcmodel = NULL,
 #' Get data from rcgam or rclm objects
 #'
 #' simple extraction of data, returning useful errors if impossible.
-#' Uses markstats::getData generic.
 #'
 #' @param object an object of class `rcgam`
 #' @param type What kind of data to return--raw or transformed (rcData object)
-#' @importFrom markstats getData
 #' @export
 
 getData.rcgam <- function(object, type = c("raw", "rcData")) {
@@ -200,11 +198,9 @@ getData.rcgam <- function(object, type = c("raw", "rcData")) {
 #' Get data from rcgam or rclm objects
 #'
 #' simple extraction of data, returning useful errors if impossible.
-#' Uses markstats::getData generic.
 #'
 #' @param object an object of class `rclm`
 #' @param type What kind of data to return--raw or transformed (rcData object)
-#' @importFrom markstats getData
 #' @export
 
 getData.rclm <- function(object, type = c("raw", "rcData")) {

@@ -13,6 +13,5 @@
 }
 \description{
 simple extraction of data, returning useful errors if impossible.
-Uses markstats::getData generic.
 }
 

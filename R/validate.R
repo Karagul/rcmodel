@@ -4,8 +4,6 @@
 #' @param retransform compare predictions to observations in original uints?
 #' Must be TRUE if what == "load"
 #' @param ... Passed to predict.rcgam
-#' @importFrom markstats crossvalidate
-#' @importFrom markstats mae sse
 #' @export
 
 crossvalidate.rcgam  <- function(object, kfolds = 0,
@@ -107,7 +105,6 @@ crossvalidate.rcgam  <- function(object, kfolds = 0,
 #' @param kfolds For scale == "cv" only. How many folds to use for crossvalidation?
 #' @param incl.data Return data and scale along with residuals? If so, a list is returned.
 #' @param ... passed to predict.rcgam
-#' @importFrom markstats crossvalidate
 #' @export
 
 splitSampleTest <- function(object, condition,
@@ -161,8 +158,8 @@ splitSampleTest <- function(object, condition,
   }
 
   gof = list(NSE = curobj$NSE,
-             R2  = markstats::R2(curobj),
-             Q2  = markstats::Q2(curobj))
+             R2  = R2(curobj),
+             Q2  = Q2(curobj))
 
   if (incl.data)
     out <- list(resid = out, data = test, scale = setNames(denom, scale), gof = gof)
@@ -174,14 +171,13 @@ splitSampleTest <- function(object, condition,
 #'
 #' @param object a rcgam or rclm object
 #' @param what Calculate NSE on concentration or load?
-#' @importFrom markstats getData
 #' @export
 NSE <- function(object, what = c("concentration", "load")) {
 
   what <- match.arg(what)
 
   stopifnot(is(object, "rcgam") || is(object, "rclm"))
-  measdat <- markstats::getData(object, type = "raw")
+  measdat <- getData(object, type = "raw")
   pred <- predict(object, what = what, newdata = measdat)[["fit"]]
   meas <- if (what == "concentration")
     measdat$conc
